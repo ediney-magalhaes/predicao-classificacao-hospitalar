@@ -1,5 +1,7 @@
 venv/
+__pycache__/
+data/
 .env
 *.json
-data/
-__pycache__/
+*.csv
+*.joblib
