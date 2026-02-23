@@ -1,7 +1,16 @@
+# Ambientes e Cache
 venv/
 __pycache__/
-data/
+
+# Variáveis de Ambiente (Segurança)
 .env
+
+# Pastas de Dados
+data/
+dados/
+
+# Extensões de Arquivos de Dados e Modelos
 *.json
 *.csv
+*.xlsx
 *.joblib
