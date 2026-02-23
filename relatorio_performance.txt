@@ -1,0 +1,25 @@
+=== RELATORIO GRUPO SUS ===
+                                          precision    recall  f1-score   support
+
+                                       -       0.00      0.00      0.00         4
+                Procedimentos cirúrgicos       0.95      0.96      0.95      6533
+                  Procedimentos clínicos       0.95      0.96      0.95      5733
+Procedimentos com finalidade diagnóstica       0.95      0.83      0.89       544
+ Órteses, próteses e materiais especiais       0.91      0.67      0.77        15
+
+                                accuracy                           0.95     12829
+                               macro avg       0.75      0.68      0.71     12829
+                            weighted avg       0.95      0.95      0.95     12829
+
+=== RELATORIO COMPLEXIDADE SUS===
+                    precision    recall  f1-score   support
+
+                 -       0.00      0.00      0.00         4
+ Alta Complexidade       0.86      0.83      0.85      1896
+    Atenção Básica       0.86      0.84      0.85        37
+Média Complexidade       0.97      0.98      0.97     10872
+     Não se Aplica       0.86      0.60      0.71        20
+
+          accuracy                           0.95     12829
+         macro avg       0.71      0.65      0.68     12829
+      weighted avg       0.95      0.95      0.95     12829
