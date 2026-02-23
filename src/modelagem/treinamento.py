@@ -21,7 +21,7 @@ def treinar_modelo(df_treino, coluna_alvo):
     X = df_treino.drop(columns=['grupo_sus', 'complexidade_sus'], errors='ignore')
     
     #listas de features
-    features_numericas= ['idade', 'nr_dias_internacao']
+    features_numericas= ['idade', 'nr_dias']
     features_categoricas= ['cid_entrada', 'procedimento_entrada', 'cid_1_principal', 'cirurgia', 'capitulo_cid', 'sexo' , 'medico_resp_atend']
 
     #processamento das features

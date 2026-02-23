@@ -3,6 +3,8 @@ import pandas_gbq
 import joblib
 import os
 
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 from dotenv import load_dotenv
 from google.oauth2 import service_account
 from src.preprocessing.preparo_ml import limpar_dados_historicos, engenharia_features, remover_classes_raras
@@ -32,11 +34,24 @@ if __name__ == '__main__':
     print(f"Dados limpos! Total de linhas: {len(df_historico)}")
 
     #treinamento da classificação para o Grupo (SUS)
-    modelo_grupo = treinar_modelo(df_historico, 'grupo_sus')
+    df_treino, df_teste = train_test_split(df_historico, test_size=0.2, random_state=42)
+    modelo_grupo = treinar_modelo(df_treino, 'grupo_sus')
     joblib.dump(modelo_grupo, 'modelo_grupo_sus.joblib')
+    previsoes_prova_grupo = modelo_grupo.predict(df_teste)
+    texto_relatorio_grupo = classification_report(df_teste['grupo_sus'], previsoes_prova_grupo)
+    with open('relatorio_performance.txt', 'w') as arquivo:
+        arquivo.write('=== RELATORIO GRUPO SUS ===\n')
+        arquivo.write(texto_relatorio_grupo)
+    
     print("Modelo de GRUPO SUS treinado e salvo com sucesso!")
 
     #treinamento da classificação para a complexidade
-    modelo_complexidade = treinar_modelo(df_historico, 'complexidade_sus')
+    df_treino, df_teste = train_test_split(df_historico, test_size=0.2, random_state=42)
+    modelo_complexidade = treinar_modelo(df_treino, 'complexidade_sus')
     joblib.dump(modelo_complexidade, 'modelo_complexidade_sus.joblib')
+    previsoes_prova_complexidade = modelo_complexidade.predict(df_teste)
+    texto_relatorio_complexidade = classification_report(df_teste['complexidade_sus'], previsoes_prova_complexidade)
+    with open('relatorio_performance.txt','a') as arquivo:
+        arquivo.write('\n=== RELATORIO COMPLEXIDADE SUS===\n')
+        arquivo.write(texto_relatorio_complexidade)
     print("Modelo de COMPLEXIDADE SUS treinado e salvo com sucesso!")
