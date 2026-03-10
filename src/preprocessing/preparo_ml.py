@@ -8,9 +8,16 @@ def limpar_dados_historicos(df, ano_corte=2020):
 
 
 def engenharia_features(df):
-    if 'cid_1_principal' in df.columns:
-        df['capitulo_cid'] = df['cid_1_principal'].astype(str).str[0]
-    return df
+    #lendo dicionário CIDs
+    df_dict_cid = pd.read_excel('data/Categorias de CIDs.xlsx')[['CÓDIGO CID', 'CAPÍTULO BREVE', 'GRUPO']]
+    #limpando a coluna do código do cid no dicionário
+    df_dict_cid['CÓDIGO CID'] = df_dict_cid['CÓDIGO CID'].astype(str).str.upper().str.strip()
+    #limpando a coluna do código do cid no dataset de saídas
+    df['cid_1_principal'] = df['cid_1_principal'].astype(str).str.upper().str.strip()
+    #fazendo merge com os dois datasets   
+    df_resultado = pd.merge(df, df_dict_cid, left_on='cid_1_principal', right_on='CÓDIGO CID', how='left')
+    df_resultado = df_resultado.drop(columns=['CÓDIGO CID'])
+    return df_resultado
 
 def remover_classes_raras(df, min_samples=10):
     for col in ['grupo_sus', 'complexidade_sus']:

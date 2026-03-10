@@ -22,7 +22,8 @@ def treinar_modelo(df_treino, coluna_alvo):
     
     #listas de features
     features_numericas= ['idade', 'nr_dias_internacao']
-    features_categoricas= ['cid_entrada', 'procedimento_entrada', 'cid_1_principal', 'cirurgia', 'capitulo_cid', 'sexo' , 'medico_resp_atend']
+    features_categoricas= ['cid_entrada', 'procedimento_entrada', 'cid_1_principal', 'cirurgia',
+                           'sexo' , 'medico_resp_atend', 'CAPÍTULO BREVE', 'GRUPO']
 
     #processamento das features
     preprocessor = ColumnTransformer(transformers=[
