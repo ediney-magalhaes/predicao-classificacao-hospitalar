@@ -3,6 +3,17 @@
 Este documento registra as principais mudanças no script de classificação.
 
 ---
+## v4.0 (Março de 2026)
+* **Assunto:** Enriquecimento Semântico e Generalização por CID..
+* **Mudança:** Integração do dicionário oficial de Categorias de CIDs (`Categorias de CIDs.xlsx`) ao pipeline de Feature Engineering..
+* **Motivo:** A técnica anterior (extração da primeira letra do CID) era limitada. Ao injetar o "Capítulo" e o "Grupo" real da doença, o modelo ganha capacidade de generalizar padrões médicos, aumentando a acurácia em CIDs raros que a IA nunca "viu" isoladamente.
+* **Ação:**
+1. Implementação de `pd.merge` (Left Join) no script `preparo_ml.py` com sanitização de strings (strip, upper).
+2. Substituição da feature `capitulo_cid` (derivada) pelas colunas oficiais `CAPÍTULO BREVE` e `GRUPO` no `treinamento.py`.
+3. Atualização das dependências (`openpyxl`) para suporte à leitura de dicionários em Excel.
+* **Resultado esperado:** Redução do erro em casos clínicos complexos e maior estabilidade do modelo frente a novos códigos de diagnóstico.
+
+---
 ## v3.0 (Novembro de 2025)
 * **Assunto:** Otimização de Performance e Combate ao "Data Drift".
 * **Mudança:** O script principal (`script_classificacao_sus_otimizado_v3.py`) foi modificado para filtrar o histórico de treinamento.
