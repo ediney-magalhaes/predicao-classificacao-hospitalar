@@ -1,81 +1,87 @@
-# 🏥 Sistema Analítico Preditivo para Classificação Hospitalar (MLOps Edition)
+# Sistema Analítico Preditivo para Classificação Hospitalar (MLOps Edition)
 
-**Analytics Engineering + Machine Learning aplicado à gestão hospitalar**
+**Status:** Em Produção | **Linguagem:** Python 3.12 | **Modelagem:** LightGBM + SMOTE
 
-## 🎯 Contexto de Negócio
+## Contexto do Problema e Impacto no Negócio
+Hospitais lidam com um volume massivo de dados de internações que precisam ser rigorosamente classificados para fins de faturamento e auditoria. As duas principais classificações exigidas são:
+* **Grupo Assistencial (GRUPO_SUS):** Clínico, Cirúrgico, Diagnóstico, Órteses e Próteses, etc.
+* **Complexidade Assistencial (COMPLEXIDADE_SUS):** Baixa, Média ou Alta complexidade.
 
-Hospitais precisam classificar internações por:
-* **Grupo Assistencial (GRUPO_SUS)** — clínico, cirúrgico, diagnóstico, etc.
-* **Complexidade Assistencial (COMPLEXIDADE_SUS)** — baixa, média ou alta complexidade.
+**O Problema (Antes):** Historicamente, este processo exigia a leitura manual de aproximadamente 900 prontuários por mês, consumindo cerca de 40 dias de trabalho humano exclusivo, com margem para erros de digitação e inconsistências de interpretação.
 
-Historicamente, esse processo exigia a leitura manual de ~900 prontuários/mês, levando cerca de 10 dias de trabalho humano exclusivo.
+**A Solução (Depois):** Implementação de um pipeline de Machine Learning e Engenharia de Dados ponta a ponta. O tempo de processamento caiu de ~40 dias para menos de 1 minuto, garantindo consistência algorítmica, mitigando glosas médicas (recusas de pagamento) e garantindo conformidade total com a LGPD.
 
-## 🚀 Transformação Implementada (Arquitetura MLOps)
+## Métricas de Impacto e Evolução de Performance
 
-O projeto evoluiu de scripts manuais em notebooks para um pipeline de produção automatizado, robusto e em conformidade com a LGPD.
+O acompanhamento de métricas é realizado continuamente para monitorar *Data Drift* e a degradação do modelo. Abaixo, a evolução em dados de validação reais nos últimos meses de operação:
 
-**Principais Impactos:**
-* **Redução de Carga Operacional:** De 10 dias para 20-30 minutos.
-* **Conformidade LGPD:** Anonimização automática de dados sensíveis antes da nuvem.
-* **Escalabilidade:** Integração nativa com Data Warehouse em nuvem (Google BigQuery).
-* **Confiabilidade:** Separação entre Ingestão, Pré-processamento e Modelagem.
+| Métrica | Novembro/2025 | Dezembro/2025 | Janeiro/2026 (Atual) | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Acurácia (Complexidade)** | 96% | 96% | **95%** | Estável |
+| **F1-Score (Alta Complexidade)** | 0.85 | 0.86 | **0.85** | Estável |
+| **Acurácia (Grupo SUS)** | 95% | 95% | **95%** | Estável |
+| **F1-Score (Órteses e Próteses)** | 0.62 | 0.72 | **0.77** | Melhora Contínua |
 
-## 🧭 Jornada do Dado (End-to-End)
+*Nota: A evolução expressiva de F1-Score na classe minoritária de "Órteses e Próteses" reflete o ajuste fino do pipeline de balanceamento (SMOTE) no pré-processamento.*
 
-**1️⃣ Extração e Ingestão Automática**
-* Carregamento de bases extraídas do sistema Soul MV.
-* **Limpeza de Schema:** Padronização de nomes de colunas (Snake Case) via Regex para compatibilidade analítica.
+## Arquitetura e Jornada do Dado (End-to-End)
 
-**2️⃣ Blindagem de Dados (LGPD)**
-* **Criptografia:** Anonimização de nomes e CPFs utilizando SHA-256 com "Salt" secreto.
-* **Segurança de Infraestrutura:** Uso de variáveis de ambiente (`.env`) e autenticação via Service Accounts do GCP.
+O projeto ultrapassa a modelagem isolada, estabelecendo um fluxo completo de ETL, Governança, Modelagem e Inferência.
 
-**3️⃣ Armazenamento em Nuvem (Cloud Data Warehouse)**
-* Ingestão automatizada para o Google BigQuery.
-* Centralização do histórico hospitalar para treinamento de modelos globais.
+### 1. Extração, Limpeza e Integração (ETL)
+* **Ingestão Automatizada:** Carregamento de bases extraídas do sistema transacional (Soul MV) contendo dados de Saídas e Cirurgias.
+* **Padronização de Schema:** Normalização de colunas (Snake Case, Lowercase) via Expressões Regulares (Regex), garantindo compatibilidade entre as tabelas do sistema legado e o ambiente analítico.
+* **Auditoria de Dados:** O script de inferência valida automaticamente a integridade das planilhas, cruzando os atendimentos processados contra as altas registradas no sistema MV, alertando a operação sobre prontuários faltantes.
 
-**4️⃣ Pré-processamento e Limpeza Clínica**
-* **Mitigação de Data Drift:** Filtro temporal automático (Janela pós-2020).
-* **Qualidade de Dados:** Remoção de Nulos e tratamento de classes raras (< 10 amostras).
-* **Engenharia de Features:** Extração automática de capítulos do CID.
+### 2. Governança e Blindagem de Dados (LGPD)
+* **Anonimização Criptográfica:** Nomes de pacientes e CPFs são anonimizados utilizando algoritmo SHA-256 com "Salt" secreto antes de qualquer tráfego em rede.
+* **Segurança de Infraestrutura:** Autenticação no Cloud Data Warehouse via Service Accounts do Google Cloud Platform (GCP) e credenciais isoladas em variáveis de ambiente (`.env`).
 
-**5️⃣ Modelagem e Inteligência Artificial (Pipeline de Treinamento)**
-* **Tradução Matemática:** Uso de `ColumnTransformer` (Scikit-Learn) para escalonamento de features numéricas (`StandardScaler`) e codificação de textos (`OneHotEncoder`).
-* **Prevenção de Viés:** Balanceamento dinâmico via **SMOTE** implementado apenas na fase de treino para evitar vazamento de dados (*Data Leakage*).
-* **Treinamento Duplo:** Modelagem simultânea para Grupo e Complexidade utilizando **LightGBM**.
-* **Serialização:** Geração de artefatos de modelo (`.joblib`) para separação total entre ambiente de Treino e Inferência (Predição em tempo real).
+### 3. Armazenamento e Modelagem de Dados (Cloud Data Warehouse)
+* **Carga (Load):** Ingestão dos dados anonimizados para o Google BigQuery (`pandas-gbq`).
+* **Modelagem SQL:** Centralização do histórico hospitalar em tabelas estruturadas, permitindo consultas legíveis e servindo como fonte única da verdade (Single Source of Truth) para o treinamento de modelos globais.
 
-## 📊 Resultados e Performance (Baseline)
+### 4. Pré-processamento e Feature Engineering
+* **Mitigação de Data Drift:** Filtro temporal implementado via código para treinar os modelos exclusivamente com dados de 2020 em diante, refletindo os protocolos médicos atuais.
+* **Tratamento de Anomalias:** Remoção de valores nulos críticos e supressão de classes estatisticamente irrelevantes (menos de 10 amostras).
+* **Engenharia de Features:** Extração inteligente, como a derivação automática do Capítulo do CID a partir do código primário (`str[0]`).
+* **Relacionamento de Tabelas:** Execução de *Left Joins* otimizados, selecionando estritamente chaves primárias e colunas-alvo para evitar colisão de variáveis (`_x` / `_y`) durante o cruzamento entre base de pacientes e base cirúrgica.
 
-| Métrica | Resultado |
-| :--- | :--- |
-| **Acurácia COMPLEXIDADE** | 96% |
-| **Acurácia GRUPO_SUS** | 95% |
-| **Redução de Esforço Manual** | ~95% |
-| **Tempo de Processamento** | < 1 min |
+### 5. Modelagem e Inteligência Artificial (MLOps)
+O pipeline foi separado em dois módulos isolados para garantir estabilidade em produção:
 
-## 🧠 Decisões Técnicas Relevantes (MLOps)
+* **Módulo de Treinamento (`executar_treino.py`):**
+  * Uso de `ColumnTransformer` (Scikit-Learn) para escalonamento numérico (`StandardScaler`) e codificação categórica (`OneHotEncoder`).
+  * Balanceamento dinâmico via `SMOTE` aplicado estritamente na base de treino (evitando *Data Leakage*).
+  * Treinamento de múltiplos algoritmos `LightGBM` (Grupo e Complexidade).
+  * Geração automatizada de relatórios textuais de performance e serialização dos artefatos matemáticos (`.joblib`).
 
-* **Modularização:** Código separado em `ingestion`, `preprocessing` e `modelagem` para facilitar a manutenção.
-* **Ambientes Isolados:** Uso de VENV e `requirements.txt` para reprodutibilidade.
-* **Segurança:** Bloqueio total de chaves e dados no histórico do Git via `.gitignore`.
-* **Governança:** Separação clara entre dados brutos (Raw), dados anonimizados (Trusted) e a camada de entrega da IA.
+* **Módulo de Inferência (`gerar_previsoes.py`):**
+  * Carregamento em memória dos modelos pré-treinados para latência sub-segundo.
+  * Ingestão dos dados do mês corrente e execução de matriz de predições.
 
-## 🛠 Tecnologias Utilizadas
+### 6. Business Rule Override (Regras de Negócio)
+A IA atua como ferramenta de suporte, mas as regras de faturamento têm a palavra final. O sistema implementa uma trava de segurança algorítmica:
+* Se o modelo prever "Procedimentos Clínicos", mas o sistema detectar a descrição de uma cirurgia realizada na ficha do paciente, o algoritmo realiza um *override*, forçando a classificação para "Procedimentos Cirúrgicos". Isso evita prejuízos financeiros diretos por subfaturamento.
 
-* **Linguagem:** Python 3.11+
-* **Processamento:** Pandas, Google Cloud BigQuery API (`pandas-gbq`)
-* **Segurança:** Hashlib, Dotenv, OAuth2
-* **IA/ML:** Scikit-learn, LightGBM, Imbalanced-learn (SMOTE), Joblib
-* **Infraestrutura:** Google Cloud Platform (GCP)
+## Decisões Técnicas e Maturidade Profissional
+* **Modularização:** Repositório estruturado com separação clara de responsabilidades (Ingestion, Preprocessing, Modeling, Inference).
+* **Reprodutibilidade:** Gerenciamento de dependências estrito através de ambientes virtuais (VENV) e arquivo `requirements.txt`.
+* **Versionamento e Segurança:** Bloqueio de arquivos sensíveis (chaves GCP, planilhas de pacientes) no Git através do `.gitignore`.
 
-## 🚀 Próximos Passos
+## Tecnologias Utilizadas
+* **Linguagem:** Python 3.12
+* **Manipulação de Dados:** Pandas
+* **Integração Cloud:** Google Cloud BigQuery API (`pandas-gbq`), OAuth2
+* **Segurança:** Hashlib (SHA-256), Python-dotenv
+* **Machine Learning:** Scikit-Learn, LightGBM, Imbalanced-learn (SMOTE)
+* **Persistência e Deploy:** Joblib
 
-* [x] Finalizar módulo de Treinamento automatizado e serialização de modelos.
-* [ ] **Desenvolver API de predição em tempo real (FastAPI/Flask) para consumo dos modelos gerados.**
-* [ ] Implementar Regras de Negócio de *Override* (Cirurgias x Clínicos).
-* [ ] Criar Dashboard executivo no Looker Studio conectado ao BigQuery.
-* [ ] Containerização via Docker.
+## Próximos Passos (Roadmap Analítico)
+- [ ] Construir uma API RESTful (FastAPI) para consumo dos modelos de predição em tempo real.
+- [ ] Desenvolver um Dashboard Executivo no Looker Studio conectado diretamente ao BigQuery, atrelando as métricas preditivas ao planejamento financeiro do hospital.
+- [ ] Containerizar a aplicação (Docker) para simplificar rotinas de deploy e agendamento contínuo (Airflow/Cron).
+- [ ] Implementar suíte de testes unitários (PyTest) para as funções de limpeza e engenharia de features.
 
 ---
 *Desenvolvido por Ediney Magalhães | Analytics Engineering | Machine Learning Aplicado | Healthcare Data*

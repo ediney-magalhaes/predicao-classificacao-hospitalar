@@ -2,7 +2,7 @@ import pandas as pd
 
 def limpar_dados_historicos(df, ano_corte=2020):
     df_filtro = df[df['ano'] >= ano_corte]
-    colunas_principais = ['grupo_sus', 'complexidade_sus', 'idade', 'sexo', 'nr_dias_internacao']
+    colunas_principais = ['grupo_sus', 'complexidade_sus', 'idade', 'sexo', 'nr_dias']
     df_limpo = df_filtro.dropna(subset=colunas_principais)
     return df_limpo
 
