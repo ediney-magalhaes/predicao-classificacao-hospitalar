@@ -2,6 +2,7 @@ import pandas as pd
 import pandas_gbq
 import joblib
 import os
+import time
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
@@ -12,6 +13,10 @@ from src.modelagem.treinamento import treinar_modelo
 
 if __name__ == '__main__':
     load_dotenv()
+
+    #variável para monitorar tempo de treinamento
+    tempo_inicio = time.time()
+
     #leitura do banco de dados
     projeto_saidas_hospitalares = os.getenv('GCP_PROJECT_ID')
     destino = 'dados_saidas_hospitalares.saidas_anonimizadas'
@@ -39,7 +44,7 @@ if __name__ == '__main__':
     joblib.dump(modelo_grupo, 'modelo_grupo_sus.joblib')
     previsoes_prova_grupo = modelo_grupo.predict(df_teste)
     texto_relatorio_grupo = classification_report(df_teste['grupo_sus'], previsoes_prova_grupo)
-    with open('relatorio_performance.txt', 'w') as arquivo:
+    with open('relatorio_performance.txt', 'w', encoding='utf-8') as arquivo:
         arquivo.write('=== RELATORIO GRUPO SUS ===\n')
         arquivo.write(texto_relatorio_grupo)
     
@@ -51,7 +56,14 @@ if __name__ == '__main__':
     joblib.dump(modelo_complexidade, 'modelo_complexidade_sus.joblib')
     previsoes_prova_complexidade = modelo_complexidade.predict(df_teste)
     texto_relatorio_complexidade = classification_report(df_teste['complexidade_sus'], previsoes_prova_complexidade)
-    with open('relatorio_performance.txt','a') as arquivo:
+    with open('relatorio_performance.txt','a', encoding='utf-8') as arquivo:
         arquivo.write('\n=== RELATORIO COMPLEXIDADE SUS===\n')
         arquivo.write(texto_relatorio_complexidade)
     print("Modelo de COMPLEXIDADE SUS treinado e salvo com sucesso!")
+
+    #final do monitoramento do tempo de treinamento
+    tempo_fim = time.time()
+
+    #verificando a diferença
+    tempo_total = tempo_fim - tempo_inicio
+    print(f'Tempo de treinamento: {round(tempo_total, 2)}')
