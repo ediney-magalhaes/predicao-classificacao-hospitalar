@@ -36,6 +36,7 @@ Diferente das versões anteriores que extraíam apenas o primeiro caractere do C
 * **Join com Dicionário Oficial:** Cruzamento dinâmico com a tabela de categorias CID-10.
 * **Hierarquia Médica:** Injeção das colunas `CAPÍTULO BREVE` (ex: Doenças do Aparelho Circulatório) e `GRUPO` (ex: Doenças Hipertensivas).
 * **Sanitização de Chaves:** Processamento rigoroso de strings (`strip`, `upper`) para garantir integridade no cruzamento de dados.
+* **Atualização:** O pipeline de Feature Engineering agora realiza o cruzamento dos CIDs de entrada com a Tabela Oficial de Categorias do CID-10 (Capítulos e Grupos), permitindo que o modelo generalize melhor a complexidade baseando-se na família da doença, reduzindo o overfitting em CIDs raros.
 
 ### 5. Modelagem e MLOps
 O pipeline utiliza `ImbPipeline` para garantir a reprodutibilidade:
