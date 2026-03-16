@@ -3,14 +3,26 @@
 Este documento registra as principais mudanças no script de classificação.
 
 ---
+## v4.1 (Março de 2026)
+* **Assunto:** Modularização (API/GUI Ready) e Correção de Multiplicação de Entradas (Bugfix).
+* **Mudança:** Refatoração completa do script `gerar_previsoes.py` e correção da lógica de junção (*merge*) das cirurgias.
+* **Motivo:** O script possuía variáveis "chumbadas" (hardcoded) que impediam a automação, e o cruzamento com pacientes que possuíam mais de uma cirurgia principal estava duplicando linhas na base final (A "Armadilha do PROCV").
+* **Ação:**
+    1. **Modularização:** Envelopamento da rotina principal na função `processar_previsoes()`, parametrizando os arquivos de entrada e saída.
+    2. **Orquestração:** Adição do bloco de execução `if __name__ == '__main__':` para permitir que o código seja importado por outros sistemas (como Streamlit ou FastAPI) sem autoexecução.
+    3. **Bugfix (Duplicidade):** Inclusão de um `drop_duplicates` focado no 'ATENDIMENTO' na base de cirurgias *antes* de realizar o `pd.merge` com a base principal.
+    4. **Filtro de Ferro:** Implementação de auditoria com `.isin()` para identificar e ejetar pacientes intrusos de outros hospitais presentes no arquivo do MV Soul.
+* **Resultado:** Código 100% desacoplado e pronto para a criação da Interface Visual, gerando uma base de saídas matematicamente exata em relação às altas físicas do hospital.
+
+---
 ## v4.0 (Março de 2026)
-* **Assunto:** Enriquecimento Semântico e Generalização por CID..
-* **Mudança:** Integração do dicionário oficial de Categorias de CIDs (`Categorias de CIDs.xlsx`) ao pipeline de Feature Engineering..
+* **Assunto:** Enriquecimento Semântico e Generalização por CID.
+* **Mudança:** Integração do dicionário oficial de Categorias de CIDs (`Categorias de CIDs.xlsx`) ao pipeline de Feature Engineering.
 * **Motivo:** A técnica anterior (extração da primeira letra do CID) era limitada. Ao injetar o "Capítulo" e o "Grupo" real da doença, o modelo ganha capacidade de generalizar padrões médicos, aumentando a acurácia em CIDs raros que a IA nunca "viu" isoladamente.
 * **Ação:**
-1. Implementação de `pd.merge` (Left Join) no script `preparo_ml.py` com sanitização de strings (strip, upper).
-2. Substituição da feature `capitulo_cid` (derivada) pelas colunas oficiais `CAPÍTULO BREVE` e `GRUPO` no `treinamento.py`.
-3. Atualização das dependências (`openpyxl`) para suporte à leitura de dicionários em Excel.
+    1. Implementação de `pd.merge` (Left Join) no script `preparo_ml.py` com sanitização de strings (strip, upper).
+    2. Substituição da feature `capitulo_cid` (derivada) pelas colunas oficiais `CAPÍTULO BREVE` e `GRUPO` no `executar_treino.py`.
+    3. Atualização das dependências (`openpyxl`) para suporte à leitura de dicionários em Excel.
 * **Resultado esperado:** Redução do erro em casos clínicos complexos e maior estabilidade do modelo frente a novos códigos de diagnóstico.
 
 ---
