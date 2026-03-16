@@ -20,6 +20,37 @@ Hospitais lidam com um volume massivo de dados de internações que precisam ser
 
 ## Arquitetura e Jornada do Dado (End-to-End)
 
+```mermaid
+graph TD
+    subgraph "1. Fontes de Dados (On-Premise)"
+        A[MV Soul - Altas] --> C(Extrator / Script Python)
+        B[Planilha de Cirurgias] --> C
+    end
+    
+    subgraph "2. Inteligência & MLOps (Local/Contêiner)"
+        C --> D{Feature Engineering}
+        D -.-> E[(Dicionário CID-10)]
+        D --> F[Modelos LightGBM .joblib]
+        F --> G[Regras de Negócio / Override]
+        G --> H([Planilha Previsões Bruta])
+    end
+    
+    subgraph "3. Ciclo Humano (DataOps)"
+        H --> I[Revisão e Validação da Assistente]
+        I --> J([Planilha Histórica Validada])
+    end
+    
+    subgraph "4. Nuvem / Medallion (BigQuery - Custo Zero)"
+        J -- Upload Mensal --> K[(Bronze: Dados Brutos)]
+        K -- SQL View --> L[(Silver: Dados Padronizados)]
+        L -- SQL View --> M[(Gold: Agregações Faturamento)]
+    end
+    
+    subgraph "5. Consumo Final"
+        M --> N[Dashboard Power BI]
+    end
+```
+
 ### 1. Extração e Integração (ETL)
 * **Ingestão:** Carga de bases do Soul MV (Saídas e Cirurgias).
 * **Auditoria:** Cruzamento automático para garantir que 100% das altas do MV foram processadas e identificar "pacientes intrusos" de outras unidades.
@@ -54,11 +85,28 @@ A IA é assistida por travas de segurança: se o modelo prever "Clínico" mas ho
 * **Cloud/DB:** Google BigQuery (GCP)
 * **DevOps:** Git, VENV, Dotenv
 
-## Próximos Passos (Roadmap)
-- [ ] **Interface de Usuário (GUI):** Criar janela "clicável" para operação não-técnica.
-- [ ] **API RESTful (FastAPI):** Disponibilizar predições via web service.
-- [ ] **Containerização (Docker):** Blindar o ambiente contra erros de dependências locais (DLLs).
-- [ ] **Dashboard Power BI:** Visualização executiva do impacto financeiro.
+## Próximos Passos (Roadmap de Evolução)
+
+Para garantir a melhoria contínua da acurácia e a escalabilidade técnica, a evolução do sistema seguirá a ordem de priorização abaixo:
+
+### 1. Fronteira da Ciência de Dados (Evolução da Inteligência)
+- [ ] **IA Explicável (XAI - SHAP):** Integrar a biblioteca SHAP para "abrir a caixa preta" do modelo, justificando matematicamente o peso de cada variável na predição para suporte à auditoria médica.
+- [ ] **Visão Longitudinal do Paciente:** Criar *features* que contabilizem o histórico de internações passadas, abandonando a visão de eventos isolados.
+- [ ] **Predição Direta de Permanência Prolongada (PLoS):** Treinar modelo secundário de regressão para prever prospectivamente a quantidade de dias de internação, auxiliando no giro de leitos.
+- [ ] **Processamento de Linguagem Natural (NLP):** Explorar modelos de linguagem para extrair contexto de textos clínicos livres (ex: notas de evolução).
+
+### 2. Ciclo de Vida do Dado (DataOps & Human-in-the-Loop)
+- [ ] **Retroalimentação do Banco de Dados:** Criar pipeline (`atualizar_historico_bq.py`) para fazer o *append* automatizado da planilha mensal revisada pela operação de volta no Google BigQuery.
+- [ ] **Retreinamento Orientado a Valor:** Garantir que as execuções mensais de treinamento absorvam as correções humanas, fechando o ciclo de aprendizado contínuo da IA.
+
+### 3. Produtização e Engenharia de Software
+- [ ] **Interface de Usuário (GUI):** Desenvolver aplicação visual amigável (ex: Streamlit) para que usuários não-técnicos executem as predições mensais sem interação com código.
+- [ ] **API RESTful (FastAPI):** Disponibilizar os artefatos `.joblib` via *web service* para integração em tempo real com o sistema MV Soul.
+- [ ] **Containerização (Docker):** Empacotar o ambiente completo para eliminar falhas de dependência local (DLLs) e viabilizar agendamentos automáticos (Cron/Airflow).
+- [ ] **Suíte de Testes (PyTest):** Implementar testes unitários para blindar as funções de limpeza e feature engineering contra quebras de schema.
+
+### 4. Visão Executiva e Estratégica
+- [ ] **Dashboard Executivo (Power BI):** Conectar os resultados diretamente ao BigQuery para visualização do impacto financeiro e suporte à tomada de decisão da diretoria.
 
 ---
 *Desenvolvido por Ediney Magalhães | Analytics Engineer | Data Engineer | Estatístico*
