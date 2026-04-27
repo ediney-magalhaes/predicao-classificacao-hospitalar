@@ -78,6 +78,31 @@ O pipeline utiliza `ImbPipeline` para garantir a reprodutibilidade:
 ### 6. Business Rule Override (Regras de Negócio)
 A IA é assistida por travas de segurança: se o modelo prever "Clínico" mas houver registro de código cirúrgico no sistema, o algoritmo realiza um *override* automático para "Cirúrgico", protegendo o faturamento.
 
+## Guia de Execução Mensal (Inferência)
+
+Siga este roteiro para processar as predições de um novo mês:
+
+### 1. Preparação dos Arquivos
+Certifique-se de que as três planilhas novas estão na pasta raiz do projeto:
+* [cite_start]**Relatório MV:** Lista oficial de altas (ex: `ALTAS_MES.xlsx`)[cite: 1788, 1792].
+* [cite_start]**Planilha de Cirurgias:** Procedimentos realizados no mês (ex: `Cirurgias_MES.xlsx`)[cite: 1788, 1792].
+* [cite_start]**Base de Trabalho:** Planilha de saídas que receberá as previsões (ex: `EPIDEMIO_MES.xlsx`)[cite: 1788, 1792].
+
+### 2. Configuração no Script
+[cite_start]Abra o arquivo `gerar_previsoes.py` e, no bloco final (`if __name__ == '__main__':`), atualize os nomes dos arquivos nos parâmetros da função `processar_previsoes`, mantendo sempre a extensão `.xlsx`[cite: 1788, 1789].
+
+### 3. Execução no Terminal
+Abra o terminal do VS Code e execute os seguintes comandos:
+```bash
+# 1. Ativar a "Sala Limpa" (Ambiente Virtual)
+.\venv\Scripts\activate
+
+# 2. Iniciar o processamento da IA
+python gerar_previsoes.py
+
+```
+O sistema salvará automaticamente o arquivo final (ex: Banco Epidemio - Mes Ano.xlsx) com as colunas PREVISAO_GRUPO e PREVISAO_COMPLEXIDADE adicionadas ao final da base completa
+
 ## Tecnologias Utilizadas
 * **Linguagem:** Python 3.12
 * **Manipulação de Dados:** Pandas, Openpyxl
