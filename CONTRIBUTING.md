@@ -29,15 +29,17 @@ Antes de iniciar qualquer desenvolvimento, garanta que o seu ambiente está espe
 
 A branch `main` é sagrada e reflete o que está em produção. Todo novo desenvolvimento deve ser feito em uma branch derivada, seguindo os prefixos abaixo:
 
-* `feature/`: Para novas funcionalidades, modelos de IA ou scripts (ex: `feature/previsoes_fevereiro`).
+* `feature/`: Para novas funcionalidades, modelos de IA ou scripts (ex: `feature/gui-streamlit`).
 * `bugfix/`: Para correções de erros no código ou na modelagem (ex: `bugfix/duplicidade_merge_cirurgia`).
 * `hotfix/`: Para correções críticas e urgentes em produção na branch main.
-* `docs/`: Para criação ou atualização de documentação.
+* `docs/`: Para criação ou atualização de documentação (ex: `docs/fase-0-governanca`).
 
 **Comando de exemplo:**
-    ```bash
-    git checkout -b feature/nome_da_sua_branch
-    ```
+```bash
+git checkout -b feature/nome_da_sua_branch
+```
+
+**Exceção:** commits de documentação fundacional (como setup inicial de `docs/`) podem ir direto na `main` quando não há risco de impacto em código de produção.
 
 ---
 
@@ -50,7 +52,7 @@ Nós utilizamos a convenção semântica para mensagens de *commit*. Isso facili
 **Tipos permitidos:**
 * `feat:` Uma nova funcionalidade ou nova feature de Machine Learning.
 * `fix:` Correção de um bug.
-* `docs:` Mudanças apenas na documentação (README, Changelog, etc.).
+* `docs:` Mudanças apenas na documentação (README, Changelog, ADRs, etc.).
 * `refactor:` Uma mudança de código que não corrige um bug nem adiciona uma feature.
 * `perf:` Uma mudança de código que melhora a performance.
 * `chore:` Atualizações de tarefas de build, configurações de pacotes, etc.
@@ -59,6 +61,7 @@ Nós utilizamos a convenção semântica para mensagens de *commit*. Isso facili
 * ❌ `git commit -m "arrumei o erro das cirurgias multiplicando"`
 * ✅ `git commit -m "fix: resolve duplicidade no merge de cirurgias no script de previsao"`
 * ✅ `git commit -m "feat(ml): injeta colunas semanticas do CID-10 no pipeline de treino"`
+* ✅ `git commit -m "docs(adr): adiciona ADR-0002 hosting da GUI Streamlit"`
 
 ---
 
@@ -66,5 +69,18 @@ Nós utilizamos a convenção semântica para mensagens de *commit*. Isso facili
 
 1. Faça o push da sua branch para o GitHub.
 2. Abra um **Pull Request (PR)** apontando para a `main`.
-3. No corpo do PR, descreva claramente o problema que está sendo resolvido e o impacto nos dados.
-4. O PR só será aprovado após Code Review de um líder técnico do projeto e após a confirmação de que a acurácia dos modelos não foi degradada.
+3. No corpo do PR, descreva claramente: o problema sendo resolvido, a abordagem escolhida, e o impacto nos dados ou modelos.
+4. Antes de fazer merge, valide que a acurácia dos modelos (Grupo e Complexidade) não foi degradada — quando o PR envolver alterações em código de treino, inferência ou feature engineering.
+5. Referencie a ADR correspondente no PR quando a mudança implementar uma decisão arquitetural (ex: "Implementa ADR-0001").
+
+> **Nota sobre projeto solo:** Enquanto o projeto for operado por um único contribuidor, o PR serve como registro de contexto e autovalidação — não como gate de aprovação externa. O merge pode ser feito pelo próprio autor após a checklist acima.
+
+---
+
+## 5. Decisões Arquiteturais (ADRs)
+
+Toda decisão arquitetural relevante deve ser registrada como uma **Architecture Decision Record (ADR)** antes de virar implementação.
+
+O projeto adota dois formatos de ADR (completo e leve), com convenções, templates e índice documentados em [`docs/adr/README.md`](docs/adr/README.md).
+
+**Regra geral:** se o PR implementa uma decisão que ainda não tem ADR, a ADR deve ser criada primeiro (ou no mesmo PR). Se a decisão já está registrada, o PR deve referenciá-la.

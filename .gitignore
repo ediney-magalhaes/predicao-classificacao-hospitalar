@@ -14,3 +14,6 @@ dados/
 *.csv
 *.xlsx
 *.joblib
+
+# Documento guia de interação com IA
+docs/AI_PROJECT_INSTRUCTIONS.md
