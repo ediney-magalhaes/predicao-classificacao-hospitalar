@@ -17,12 +17,13 @@ Registro estruturado das decisões arquiteturais do Sistema Preditivo de Classif
 |---|---|---|---|
 | [0000](0000-adotar-madr-como-formato-de-adr.md) | Adotar MADR como formato padrão de ADR | Aceita | 2026-04-27 |
 | [0001](0001-validacao-de-dados-em-tres-camadas.md) | Validação de dados em três camadas (Pydantic + Pandera + dbt) | Aceita | 2026-04-27 |
+| [0002](0002-hosting-gui-streamlit-local.md) | Hospedar GUI Streamlit localmente no PC do hospital | Aceita | 2026-05-15 |
 
 ## ADRs Planejadas
 
 | ADR | Tema | Fase | Status |
 |---|---|---|---|
-| 0002 | Hosting da GUI Streamlit | Fase 1 | Pendente |
+| 0002 | Hosting da GUI Streamlit | Fase 1 | Aceita |
 | 0003 | Storage de planilhas (input + revisada) | Fase 2 | Pendente |
 | 0004 | Model Registry | Fase 5 | Pendente |
 | 0005 | Monitoramento de drift | Fase 4 | Pendente |
