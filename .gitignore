@@ -17,3 +17,6 @@ dados/
 
 # Documento guia de interação com IA
 docs/AI_PROJECT_INSTRUCTIONS.md
+
+# Senha app
+.streamlit/secrets.toml
