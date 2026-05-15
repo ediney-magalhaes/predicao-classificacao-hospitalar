@@ -1,4 +1,8 @@
 import pandas as pd
+import logging
+from config.settings import settings
+
+logger = logging.getLogger(__name__)
 
 def limpar_dados_historicos(df, ano_corte=2020):
     df_filtro = df[df['ano'] >= ano_corte]
@@ -9,7 +13,7 @@ def limpar_dados_historicos(df, ano_corte=2020):
 
 def engenharia_features(df):
     #lendo dicionário CIDs
-    df_dict_cid = pd.read_excel('data/Categorias de CIDs.xlsx')[['CÓDIGO CID', 'CAPÍTULO BREVE', 'GRUPO']]
+    df_dict_cid = pd.read_excel(settings.dicionario_cid_path)[['CÓDIGO CID', 'CAPÍTULO BREVE', 'GRUPO']]
     #limpando a coluna do código do cid no dicionário
     df_dict_cid['CÓDIGO CID'] = df_dict_cid['CÓDIGO CID'].astype(str).str.upper().str.strip()
     #limpando a coluna do código do cid no dataset de saídas
@@ -24,6 +28,6 @@ def remover_classes_raras(df, min_samples=10):
         contar = df[col].value_counts()
         remover = contar[contar < min_samples].index
         if not remover.empty:
-            print(f"Removendo {len(remover)} classes raras da coluna '{col}': {list(remover)}")
+            logger.warning(f"Removendo {len(remover)} classes raras da coluna '{col}': {list(remover)}")
             df = df[~df[col].isin(remover)]
     return df
