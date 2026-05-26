@@ -26,7 +26,7 @@ def calcular_diferencas(
 
     Args:
         df_original: DataFrame com predições do modelo.
-        df_revisado: DataFrame após revisão da assistente.
+        df_revisao: DataFrame após revisão da assistente.
         coluna_chave: Coluna usada para parear registros.
         colunas_comparar: Colunas a comparar. Se None, usa as duas
                           colunas padrão de predição.
@@ -48,6 +48,14 @@ def calcular_diferencas(
     if colunas_comparar is None:
         colunas_comparar = ["PREVISAO_GRUPO", "PREVISAO_COMPLEXIDADE"]
     
+    # validação em caso de inexistência da coluna chave em um dos DataFrames
+    for df, nome in [(df_original, "original"), (df_revisao, "revisão")]:
+        faltantes = [c for c in [coluna_chave] + colunas_comparar if c not in df.columns]
+        if faltantes:
+            raise ValueError(
+                f"Colunas ausentes no DataFrame {nome}: {faltantes}"
+            )
+
     # pareamento pelo número de atendimento
     df_merge = df_original.merge(
         df_revisao[[coluna_chave] + colunas_comparar],
