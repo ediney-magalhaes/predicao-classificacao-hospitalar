@@ -31,6 +31,14 @@ from src.ingestion.carga_bq import enviar_para_bigquery
 
 logger = logging.getLogger(__name__)
 
+# mapeamento de número do mês para nome em português
+_MESES_PT = {
+    "01": "Janeiro", "02": "Fevereiro", "03": "Março",
+    "04": "Abril", "05": "Maio", "06": "Junho",
+    "07": "Julho", "08": "Agosto", "09": "Setembro",
+    "10": "Outubro", "11": "Novembro", "12": "Dezembro",
+}
+
 def _localizar_predicao_original(safra_mes: str) -> Path | None:
     """
     Busca o arquivo de predição original na W: pelo mês de referência.
@@ -46,14 +54,7 @@ def _localizar_predicao_original(safra_mes: str) -> Path | None:
     """
     ano, mes_num = safra_mes.split("-")
 
-    meses = {
-        "01": "Janeiro", "02": "Fevereiro", "03": "Março",
-        "04": "Abril", "05": "Maio", "06": "Junho",
-        "07": "Julho", "08": "Agosto", "09": "Setembro",
-        "10": "Outubro", "11": "Novembro", "12": "Dezembro",
-    }
-
-    nome_mes = meses.get(mes_num)
+    nome_mes = _MESES_PT.get(mes_num)
     if not nome_mes:
         logger.error(f"Mês inválido na safra: {safra_mes}")
         return None
@@ -71,6 +72,44 @@ def _localizar_predicao_original(safra_mes: str) -> Path | None:
     logger.warning(f"Predição original não encontrada: {caminho}")
     return None
 
+def salvar_predicao_original(df: pd.DataFrame, safra_mes: str) -> Path | None:
+    """
+    Salva a predição original (antes da revisão) na W:.
+
+    Chamada pela aba 1 do app.py logo após gerar predições.
+    O arquivo salvo aqui será lido pela aba 2 para comparação.
+
+    Args:
+        df: DataFrame com as predições geradas pelo modelo.
+        safra_mes: Mês no formato 'YYYY-MM'.
+
+    Returns:
+        Path do arquivo salvo, ou None se falhar.
+    """
+    ano, mes_num = safra_mes.split("-")
+
+    nome_mes = _MESES_PT.get(mes_num)
+    if not nome_mes:
+        logger.error(f"Mês inválido na safra: {safra_mes}")
+        return None
+
+    pasta_ano = settings.storage_base_path / ano
+    pasta_ano.mkdir(parents=True, exist_ok=True)
+
+    nome_arquivo = (
+        f"Banco Epidemio - {nome_mes} {ano}"
+        f"{settings.sufixo_predicao_original}.xlsx"
+    )
+    caminho = pasta_ano / nome_arquivo
+
+    try:
+        df.to_excel(caminho, index=False, engine="openpyxl")
+        logger.info(f"Predição original salva em: {caminho}")
+        return caminho
+    except Exception as e:
+        logger.exception(f"Erro ao salvar predição original: {e}")
+        return None
+    
 
 def processar_correcao(
     df_revisado: pd.DataFrame,
