@@ -158,6 +158,68 @@ class Settings(BaseSettings):
     )
 
     # -----------------------------------------------------------------------
+    # STORAGE (Pasta de Rede)
+    # Caminho base onde ficam as planilhas revisadas por safra mensal.
+    # A W: é o storage primário (ADR-0003). O app salva predições originais
+    # e lê de volta pra comparar com a versão revisada.
+    # -----------------------------------------------------------------------
+    # Cria um atributo do tipo Path para Pydantic validar e converter corretamente
+    storage_base_path: Path = Field(
+        default=Path(r"W:\NOVA PASTA QUALIDADE\Qualidade\Banco de dados\Epidemio"),
+        description="Caminho base da pasta de rede onde ficam as planilhas"
+    )
+
+    # -----------------------------------------------------------------------
+    # BIGQUERY (Tabelas e Dataset)
+    # Nomes das tabelas que o pipeline de ingestão usa.
+    # O dataset 'audit' precisa ser criado manualmente uma vez no BigQuery.
+    # -----------------------------------------------------------------------
+    # Cria um atributo do tipo string para configuração do idenficador no BigQuery
+    bq_tabela_bronze: str = Field(
+        default="dados_saidas_hospitalares.saidas_anonimizadas",
+        description="Tabela bronze no BigQuery (dataset.tabela)"
+    )
+    bq_tabela_auditoria: str = Field(
+        default="audit.hitl_events",
+        description="Tabela de auditoria HITL no BigQuery (dataset.tabela)"
+    )
+
+    # -----------------------------------------------------------------------
+    # ANONIMIZAÇÃO (LGPD)
+    # Colunas que contêm dados sensíveis. Separadas em dois grupos:
+    # - hash: o valor é substituído por SHA-256 (preserva o vínculo entre
+    #   registros sem expor o dado real)
+    # - drop: a coluna é removida completamente (dado sem valor analítico)
+    # -----------------------------------------------------------------------
+    #
+    colunas_hash: list[str] = Field(
+        default=[
+            "nome_paciente", "nr_cpf",
+            "nm_med_presc", "medico_sumario_alta", "medico_resp_atend"
+        ],
+        description="Colunas que serão substituídas por hash SHA-256 + salt"
+    )
+    colunas_drop: list[str] = Field(
+        default=["endereco", "cep", "bairro", "telefone"],
+        description="Colunas removidas antes da ingestão"
+    )
+
+    # -----------------------------------------------------------------------
+    # VERSIONAMENTO
+    # Identifica qual versão do modelo gerou cada predição.
+    # Atualizar manualmente a cada retreino até o Model Registry (Fase 5)
+    # automatizar isso.
+    # -----------------------------------------------------------------------
+    modelo_versao: str = Field(
+        default="v6.0.0",
+        description="Versão atual dos modelos em produção"
+    )
+    sufixo_predicao_original: str = Field(
+        default=" - PREDICAO",
+        description="Sufixo adicionado ao nome do arquivo de predição original na W:"
+    )
+
+    # -----------------------------------------------------------------------
     # CONFIGURAÇÃO DO PYDANTIC SETTINGS
     # model_config substitui a antiga class Config (Pydantic v2).
     # -----------------------------------------------------------------------
