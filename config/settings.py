@@ -82,6 +82,10 @@ class Settings(BaseSettings):
         default=PROJECT_ROOT / "data" / "Categorias de CIDs.xlsx",
         description="Caminho do dicionário oficial de CIDs"
     )
+    dicionario_classificacao_path: Path = Field(
+        default=PROJECT_ROOT / "data" / "Classificação_grupo&complexidade_SUS.xlsx",
+        description="Caminho do dicionário oficial de classificação dos grupos e complexidade SUS"
+    )
 
     # -----------------------------------------------------------------------
     # FEATURES DOS MODELOS
