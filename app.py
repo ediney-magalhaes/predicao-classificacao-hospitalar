@@ -23,10 +23,9 @@ import streamlit as st
 from config.settings import settings
 from src.validacao.validacao import validar_saidas, validar_altas, validar_cirurgias
 from gerar_previsoes import processar_previsoes
+from src.hitl.pipeline_correcao import salvar_predicao_original, processar_correcao
 
-# ---------------------------------------------------------------------------
 # LOGGING
-# ---------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
@@ -34,25 +33,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-# ---------------------------------------------------------------------------
 # CONFIGURAÇÃO DA PÁGINA
-# ---------------------------------------------------------------------------
 st.set_page_config(
     page_title=settings.app_titulo,
     page_icon="🏥",
     layout="wide",
 )
 
-
-# ---------------------------------------------------------------------------
 # AUTENTICAÇÃO
-#
 # Senha simples via st.secrets. O arquivo .streamlit/secrets.toml
 # contém: senha = "sua_senha_aqui"
-#
 # Na Fase 8 (industrialização), isso evolui pra autenticação mais robusta.
-# ---------------------------------------------------------------------------
 def verificar_autenticacao():
     """Tela de login. Retorna True se autenticado."""
     if st.session_state.get("autenticado", False):
@@ -72,10 +63,7 @@ def verificar_autenticacao():
 
     return False
 
-
-# ---------------------------------------------------------------------------
 # ABA 1: GERAR PREDIÇÕES
-# ---------------------------------------------------------------------------
 def aba_gerar_predicoes():
     """Fluxo principal: upload → validação → predição → download."""
 
@@ -85,7 +73,7 @@ def aba_gerar_predicoes():
         "e gere as predições de Grupo e Complexidade SUS."
     )
 
-    # --- Seleção do mês de referência ---
+    # seleção do mês de referência
     col_mes, col_ano = st.columns(2)
     with col_mes:
         mes = st.selectbox(
@@ -106,7 +94,7 @@ def aba_gerar_predicoes():
 
     st.divider()
 
-    # --- Upload dos 3 arquivos ---
+    # upload dos 3 arquivos
     st.subheader("1. Upload das planilhas")
 
     col1, col2, col3 = st.columns(3)
@@ -133,11 +121,11 @@ def aba_gerar_predicoes():
             help="Planilha de cirurgias realizadas no mês",
         )
 
-    # --- Validação ---
+    # validação
     if arquivo_saidas and arquivo_altas and arquivo_cirurgias:
         st.subheader("2. Validação dos dados")
 
-        # Lê os DataFrames
+        # leitura dos DataFrames
         try:
             df_saidas = pd.read_excel(arquivo_saidas)
             df_altas = pd.read_excel(arquivo_altas)
@@ -146,14 +134,14 @@ def aba_gerar_predicoes():
             st.error(f"Erro ao ler os arquivos: {e}")
             return
 
-        # Valida cada planilha
+        # validação de cada planilha
         resultados_validacao = []
 
         ok_saidas, msg_saidas = validar_saidas(df_saidas)
         ok_altas, msg_altas = validar_altas(df_altas)
         ok_cirurgias, msg_cirurgias = validar_cirurgias(df_cirurgias)
 
-        # Exibe resultado da validação
+        # exibe resultado da validação
         for ok, msg, nome in [
             (ok_saidas, msg_saidas, "Saídas"),
             (ok_altas, msg_altas, "Altas MV"),
@@ -175,7 +163,7 @@ def aba_gerar_predicoes():
 
         st.divider()
 
-        # --- Predição ---
+        # predição
         st.subheader("3. Gerar predições")
 
         if st.button("🚀 Gerar Predições", type="primary", use_container_width=True):
@@ -184,17 +172,26 @@ def aba_gerar_predicoes():
                     df_resultado, metadados = processar_previsoes(
                         df_saidas, df_altas, df_cirurgias
                     )
-                    # Salva no session_state pra sobreviver ao rerun
+                    # salva no session_state pra sobreviver ao rerun
                     st.session_state["df_resultado"] = df_resultado
                     st.session_state["metadados"] = metadados
                     st.session_state["mes_ref"] = f"{mes:02d}-{ano}"
                     logger.info(f"Predição concluída para {mes:02d}/{ano}")
+                    
+                    # salva predição original na W: para comparação
+                    safra = f"{ano}-{mes:02d}"
+                    caminho_salvo = salvar_predicao_original(df_resultado, safra)
+                    if caminho_salvo:
+                        st.session_state["caminho_predicao_original"] = str(caminho_salvo)
+                        logger.info(f"Predição original salva em: {caminho_salvo}")
+                    else:
+                        logger.warning("Não foi possível salvar predição original na W:")
                 except Exception as e:
                     st.error(f"Erro durante o processamento: {e}")
                     logger.exception("Erro no processamento de predições")
                     return
 
-        # --- Resultado ---
+        # resultado
         if "df_resultado" in st.session_state:
             _exibir_resultado(
                 st.session_state["df_resultado"],
@@ -211,13 +208,28 @@ def _exibir_resultado(df: pd.DataFrame, metadados: dict, mes_ref: str):
     st.divider()
     st.subheader("4. Resultado")
 
-    # --- Alertas ---
+    # alertas
     alertas = metadados.get("alertas", [])
     if alertas:
         for alerta in alertas:
             st.warning(f"⚠️ {alerta}")
 
-    # --- Métricas resumo ---
+    # lista de atendimentos faltantes (constam no MV mas não na epidemio)
+    lista_faltantes = metadados.get("stats", {}).get("lista_faltantes_mv", [])
+    if lista_faltantes:
+        with st.expander(f"📋 {len(lista_faltantes)} atendimentos para buscar no MV"):
+            st.markdown(
+                "Esses atendimentos constam nas altas do MV mas **não foram encontrados** "
+                "na planilha Epidemio. Busque no sistema e adicione manualmente na planilha "
+                "antes de enviar as correções."
+            )
+            st.dataframe(
+                {"Nº Atendimento": lista_faltantes},
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    # métricas resumo
     stats = metadados.get("stats", {})
 
     col1, col2, col3, col4 = st.columns(4)
@@ -234,7 +246,7 @@ def _exibir_resultado(df: pd.DataFrame, metadados: dict, mes_ref: str):
         help="Predições com confiança < 70% — revisar com atenção",
     )
 
-    # --- Distribuição das predições ---
+    # distribuição das predições
     st.markdown("**Distribuição das predições:**")
     col_grupo, col_complex = st.columns(2)
 
@@ -248,7 +260,7 @@ def _exibir_resultado(df: pd.DataFrame, metadados: dict, mes_ref: str):
         dist_complex = df["PREVISAO_COMPLEXIDADE"].value_counts()
         st.dataframe(dist_complex, use_container_width=True)
 
-    # --- Avaliação (se gabarito existir) ---
+    # avaliação (se gabarito existir)
     avaliacao = metadados.get("avaliacao")
     if avaliacao:
         with st.expander("📊 Relatório de avaliação (gabarito disponível)"):
@@ -256,11 +268,11 @@ def _exibir_resultado(df: pd.DataFrame, metadados: dict, mes_ref: str):
                 st.markdown(f"**{modelo_nome}**")
                 accuracy = report.get("accuracy", 0)
                 st.metric(f"Acurácia {modelo_nome}", f"{accuracy:.1%}")
-                # Converte o dict do classification_report em DataFrame legível
+                # converte o dict do classification_report em DataFrame legível
                 report_df = pd.DataFrame(report).transpose()
                 st.dataframe(report_df.round(3), use_container_width=True)
 
-    # --- Preview da tabela ---
+    # preview da tabela
     with st.expander("👁️ Preview dos dados (primeiras 20 linhas)"):
         colunas_preview = [
             "atendimento", "idade", "nr_dias", "sexo",
@@ -268,15 +280,15 @@ def _exibir_resultado(df: pd.DataFrame, metadados: dict, mes_ref: str):
             "PREVISAO_GRUPO", "CONFIANCA_GRUPO",
             "PREVISAO_COMPLEXIDADE", "CONFIANCA_COMPLEXIDADE",
         ]
-        # Filtra só as colunas que existem (pra não quebrar)
+        # filtra só as colunas que existem
         colunas_disponiveis = [c for c in colunas_preview if c in df.columns]
         st.dataframe(df[colunas_disponiveis].head(20), use_container_width=True)
 
-    # --- Download ---
+    # download
     st.divider()
     st.subheader("5. Download")
 
-    # Gera o Excel em memória (sem salvar em disco)
+    # gera excel em memória (sem salvar em disco)
     buffer = io.BytesIO()
     df.to_excel(buffer, index=False, engine="openpyxl")
     buffer.seek(0)
@@ -297,35 +309,136 @@ def _exibir_resultado(df: pd.DataFrame, metadados: dict, mes_ref: str):
         "PREVISAO_COMPLEXIDADE, CONFIANCA_GRUPO e CONFIANCA_COMPLEXIDADE."
     )
 
-
-# ---------------------------------------------------------------------------
-# ABA 2: ENVIAR CORREÇÕES (Fase 2 — placeholder)
-# ---------------------------------------------------------------------------
+# ABA 2: ENVIAR CORREÇÕES
 def aba_enviar_correcoes():
-    """Placeholder para a Fase 2 (Ciclo HITL Automatizado)."""
+    """Fluxo de envio de correções: upload → validação → comparação → ingestão."""
+
     st.header("📤 Enviar Correções")
-    st.info(
-        "Esta funcionalidade será habilitada na próxima versão.\n\n"
-        "Aqui você poderá enviar a planilha corrigida de volta ao sistema, "
-        "que irá:\n"
-        "- Detectar as diferenças entre a predição e a sua correção\n"
-        "- Calcular a taxa de correção\n"
-        "- Registrar os metadados de auditoria\n"
-        "- Atualizar a base de dados para retreino futuro do modelo"
+    st.markdown(
+        "Após revisar e corrigir as predições no Excel, "
+        "faça upload da planilha corrigida aqui."
     )
 
+    # seleção do mês de referência
+    col_mes, col_ano = st.columns(2)
+    with col_mes:
+        mes = st.selectbox(
+            "Mês de referência:",
+            options=list(range(1, 13)),
+            format_func=lambda m: [
+                "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+            ][m - 1],
+            index=datetime.now().month - 2 if datetime.now().month > 1 else 11,
+            key="correcao_mes",
+        )
+    with col_ano:
+        ano = st.selectbox(
+            "Ano:",
+            options=list(range(2025, datetime.now().year + 1)),
+            index=min(datetime.now().year - 2025, 1),
+            key="correcao_ano",
+        )
 
-# ---------------------------------------------------------------------------
+    st.divider()
+
+    # upload da planilha revisada
+    arquivo_revisado = st.file_uploader(
+        "📄 Planilha revisada (com correções)",
+        type=["xlsx"],
+        key="upload_revisado",
+        help="O arquivo que você corrigiu no Excel após revisar as predições",
+    )
+
+    if arquivo_revisado:
+        try:
+            df_revisado = pd.read_excel(arquivo_revisado)
+        except Exception as e:
+            st.error(f"Erro ao ler o arquivo: {e}")
+            return
+
+        st.success(f"Arquivo carregado: {len(df_revisado)} registros")
+
+        safra = f"{ano}-{mes:02d}"
+
+        # botão de processar
+        if st.button("🚀 Processar Correções", type="primary", use_container_width=True):
+            with st.spinner("Processando correções... Validando, comparando e enviando."):
+                resultado = processar_correcao(
+                    df_revisado=df_revisado,
+                    safra_mes=safra,
+                    revisor="assistente_epidemio",
+                )
+
+            # exibir resultado
+            if resultado["sucesso"]:
+                st.success(f"✅ {resultado['mensagem']}")
+
+                # métricas de correção (se disponíveis)
+                metricas = resultado.get("metricas")
+                if metricas and metricas.get("total_registros"):
+                    st.divider()
+                    st.subheader("Resumo das correções")
+
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric(
+                        "Correções em Grupo",
+                        metricas.get("correcoes_grupo", 0),
+                        help="Quantidade de linhas onde PREVISAO_GRUPO foi alterado",
+                    )
+                    col2.metric(
+                        "Correções em Complexidade",
+                        metricas.get("correcoes_complexidade", 0),
+                        help="Quantidade de linhas onde PREVISAO_COMPLEXIDADE foi alterado",
+                    )
+                    col3.metric(
+                        "Correções em ambas",
+                        metricas.get("correcoes_ambos", 0),
+                        help="Linhas onde ambas as colunas foram corrigidas",
+                    )
+
+                    # taxas de correção
+                    col4, col5 = st.columns(2)
+                    col4.metric(
+                        "Taxa de correção (Grupo)",
+                        f"{metricas.get('taxa_correcao_grupo', 0):.1f}%",
+                    )
+                    col5.metric(
+                        "Taxa de correção (Complexidade)",
+                        f"{metricas.get('taxa_correcao_complexidade', 0):.1f}%",
+                    )
+
+                    # detalhamento das transições
+                    for chave in ["detalhamento_grupo", "detalhamento_complexidade"]:
+                        transicoes = metricas.get(chave, [])
+                        if transicoes:
+                            nome = chave.replace("detalhamento_", "").title()
+                            with st.expander(f"Detalhamento — {nome}"):
+                                df_trans = pd.DataFrame(transicoes)
+                                df_trans.columns = ["De (modelo)", "Para (revisão)", "Quantidade"]
+                                st.dataframe(df_trans, use_container_width=True)
+
+                # registros enviados
+                if resultado.get("registros_enviados"):
+                    st.info(
+                        f"📊 {resultado['registros_enviados']} registros anonimizados "
+                        f"enviados para a base de treino."
+                    )
+            else:
+                st.error(f"❌ Falha na etapa: **{resultado['etapa_falha']}**")
+                st.markdown(resultado["mensagem"])
+    else:
+        st.info("Faça upload da planilha revisada para continuar.")
+
 # MAIN
-# ---------------------------------------------------------------------------
 def main():
     if not verificar_autenticacao():
         return
 
-    # Sidebar com informações
+    # sidebar com informações
     with st.sidebar:
         st.title("🏥 Classificação SUS")
-        st.caption(f"v1.0 — {settings.app_titulo}")
+        st.caption(f"v2.0 — {settings.app_titulo}")
         st.divider()
         st.markdown("**Operação:**")
         st.markdown(
@@ -333,7 +446,8 @@ def main():
             "2. Verifique a validação\n"
             "3. Gere as predições\n"
             "4. Baixe o resultado\n"
-            "5. Corrija no Excel e reenvie (em breve)"
+            "5. Corrija no Excel\n"
+            "6. Reenvie na aba Correções"
         )
         st.divider()
         if st.button("🚪 Sair"):

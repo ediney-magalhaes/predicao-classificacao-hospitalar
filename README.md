@@ -1,6 +1,6 @@
 # Sistema Analítico Preditivo para Classificação Hospitalar SUS
 
-**Status:** Em Produção | **Versão:** 5.0.0 | **Linguagem:** Python 3.12 | **Modelagem:** LightGBM + SMOTE | **Interface:** Streamlit (rede hospitalar)
+**Status:** Em Produção | **Versão:** 6.0.0 | **Linguagem:** Python 3.12 | **Modelagem:** LightGBM + SMOTE | **Interface:** Streamlit (rede hospitalar) | **Bronze:** 110.136 registros (2012-2026)
 
 ---
 
@@ -29,7 +29,8 @@ Hospitais lidam com um volume massivo de dados de internações que precisam ser
 | **Custo infraestrutura** | R$ 0 | R$ 0 | R$ 0 | Mantido |
 | **Validação de entrada** | Nenhuma | Nenhuma | Pandera (3 schemas) | Novo |
 | **Score de confiança** | Não | Não | Sim (predict_proba) | Novo |
-
+| **Taxa de correção (Grupo)** | — | — | 13.3% (baseline) | Novo |
+| **Bronze (registros)** | — | — | 110.136 | Novo |
 ---
 
 ## Arquitetura e Jornada do Dado (End-to-End)
@@ -61,14 +62,13 @@ graph TD
     subgraph "4. Ciclo Humano (HITL)"
         C3 --> D1[Assistente revisa e corrige no Excel]
         D1 --> D2([Planilha Corrigida])
-        D2 -. Fase 2 .-> D3[Upload de correções na GUI]
+        D2 --> D3[Upload de correções na GUI]
+        D3 --> D4[Comparação pareada + taxa de correção]
     end
 
     subgraph "5. Nuvem / Medallion (BigQuery - Custo Zero)"
-        D2 -- Anonimização SHA-256 --> E1[(Bronze: Histórico Validado)]
-        E1 -. Fase 3 .-> E2[(Silver: Views Padronizadas)]
-        E2 -. Fase 3 .-> E3[(Gold: Agregações Faturamento)]
-    end
+        D4 -- Enriquecimento CID + Anonimização SHA-256 --> E1[(Bronze: 110k registros)]
+        D4 --> E0[(Auditoria: audit.hitl_events)]
 
     subgraph "6. Consumo Final"
         E3 -. Fase 3 .-> F1[Dashboard BI]
@@ -137,10 +137,17 @@ Pydantic BaseSettings centraliza caminhos de modelos, listas de features, thresh
 │   ├── inference/
 │   │   └── predicao.py             # Predição, confiança, override, cache
 │   ├── validacao/
-│   │   └── validacao.py            # Schemas Pandera (3 planilhas)
+│   │   ├── validacao.py            # Schemas Pandera (3 planilhas de entrada)
+│   │   └── schemas_pos_revisao.py  # Schemas Pandera pós-revisão + normalização
+│   ├── hitl/
+│   │   ├── pipeline_correcao.py    # Orquestrador do ciclo HITL
+│   │   ├── comparador.py           # Diferenças original vs revisão
+│   │   └── auditoria.py            # Eventos HITL no BigQuery
 │   └── ingestion/
 │       ├── anonimizacao.py         # SHA-256 + salt
-│       └── carga_bq.py            # Ingestão na Bronze
+│       └── carga_bq.py            # Ingestão na Bronze (idempotente)
+├── scripts/
+│   └── ingestao_historica.py       # Ingestão única 2012-2024 (109k registros)
 ├── data/
 │   └── Categorias de CIDs.xlsx     # Dicionário oficial CID-10
 ├── docs/
@@ -157,10 +164,10 @@ Pydantic BaseSettings centraliza caminhos de modelos, listas de features, thresh
 
 ### Concluído
 - [x] **Fase 0 — Governança:** ADRs, templates MADR, estrutura docs/
-- [x] **Fase 1 — GUI Streamlit:** Interface completa com upload, validação Pandera, predição com confiança, download. Pendente: teste no PC do hospital
+- [x] **Fase 1 — GUI Streamlit:** Interface completa com upload, validação Pandera, predição com confiança, download. Testada no PC do hospital.
+- [x] **Fase 2 — Ciclo HITL Automatizado:** Upload de correções pela assistente, comparação pareada com detalhamento de transições, enriquecimento CID, anonimização, ingestão idempotente na Bronze, auditoria. Ingestão histórica: 109k registros (2012-2024).
 
 ### Próximas Fases
-- [ ] **Fase 2 — Ciclo HITL Automatizado:** Upload de correções pela assistente, detecção de diferenças, ingestão automática na Bronze
 - [ ] **Fase 3 — Camada Analítica:** Silver/Gold em dbt, dashboard BI com métricas executivas
 - [ ] **Fase 4 — Observabilidade:** Monitoramento de drift (PSI), performance ao longo do tempo, alertas
 - [ ] **Fase 5 — Continuous Training:** Champion vs challenger, Model Registry, gates de qualidade
