@@ -28,6 +28,7 @@ from src.hitl.comparador import calcular_diferencas
 from src.hitl.auditoria import registrar_evento_hitl
 from src.ingestion.anonimizacao import anonimizar_dataframe
 from src.ingestion.carga_bq import enviar_para_bigquery
+from src.preprocessing.preparo_ml import engenharia_features
 
 logger = logging.getLogger(__name__)
 
@@ -184,11 +185,19 @@ def processar_correcao(
 
     # ETAPA 3: Anonimização
     try:
-        # Renomeia colunas de predição para o padrão da Bronze
+        # renomeia colunas de predição para o padrão da Bronze
         df_revisado = df_revisado.rename(columns={
             "PREVISAO_GRUPO": "GRUPO_SUS",
             "PREVISAO_COMPLEXIDADE": "COMPLEXIDADE_SUS",
         })
+
+        # enriquecimento CID: merge com dicionário traz capitulo_breve e grupo_cid remove colunas do dicionário CID se já existirem
+        colunas_cid = ["CAPÍTULO BREVE", "GRUPO", "CÓDIGO CID"]
+        df_revisado = df_revisado.drop(
+            columns=[c for c in colunas_cid if c in df_revisado.columns]
+        )
+        df_revisado = engenharia_features(df_revisado)
+        # normalização de nomes
         df_anonimizado = anonimizar_dataframe(df_revisado)
         logger.info(f"Anonimização concluída: {len(df_anonimizado)} registros")
     except Exception as e:
