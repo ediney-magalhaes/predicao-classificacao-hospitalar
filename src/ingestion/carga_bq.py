@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import pandas_gbq
 from google.oauth2 import service_account
+from google.cloud import bigquery
 
 from config.settings import settings
 
@@ -40,6 +41,11 @@ def enviar_para_bigquery(df: pd.DataFrame, safra_mes: str, tabela_destino: str |
 
     # tabela de destino
     destino = tabela_destino or settings.bq_tabela_bronze
+
+    # remove safra anterior se existir (idempotência: reprocessar não duplica)
+    client = bigquery.Client(credentials=credenciais, project=settings.gcp_project_id)
+    delete_query = f"DELETE FROM `{destino}` WHERE safra_mes = '{safra_mes}'"
+    client.query(delete_query).result()
 
     # acrescenta ao banco existente
     pandas_gbq.to_gbq(
