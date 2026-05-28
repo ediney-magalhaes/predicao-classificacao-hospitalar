@@ -45,33 +45,51 @@ def anonimizar_dataframe(df: pd.DataFrame) -> pd.DataFrame:
       2. Drop das colunas definidas em settings.colunas_drop
       3. Padroniza nomes de colunas (lowercase, sem caracteres especiais)
 
+    O matching de colunas é case-insensitive para suportar planilhas
+    históricas com nomes em MAIÚSCULO, Título ou minúsculo.
+
     Args:
         df: DataFrame com dados brutos (pode conter colunas sensíveis)
 
     Returns:
         DataFrame anonimizado, pronto para ingestão no BigQuery.
     """
-    # Cria uma cópia do DataFrame recebido (imutabilidade) e chama o salt do settings
     df = df.copy()
     salt = settings.salt_sus
 
-    # Aplica Hash nas colunas sensíveis
+    # lookup case-insensitive: nome em minúsculo -> nome real no DataFrame
+    colunas_df_lower = {c.lower(): c for c in df.columns}
+
+    # 1. Aplica Hash nas colunas sensíveis
     for coluna in settings.colunas_hash:
-        if coluna in df.columns:
-            df[f"hash{coluna}"] = df[coluna].apply(
+        coluna_real = colunas_df_lower.get(coluna.lower())
+        if coluna_real:
+            df[f"hash_{coluna_real}"] = df[coluna_real].apply(
                 lambda valor: _aplicar_hash(valor, salt)
             )
-            df = df.drop(columns=[coluna])
+            df = df.drop(columns=[coluna_real])
 
-    # Realiza Drop das colunas que não tem valor analítico
-    colunas_para_dropar = [c for c in settings.colunas_drop if c in df.columns]
+    # 2. Realiza Drop das colunas sem valor analítico
+    colunas_para_dropar = [
+        colunas_df_lower[c.lower()]
+        for c in settings.colunas_drop
+        if c.lower() in colunas_df_lower
+    ]
     df = df.drop(columns=colunas_para_dropar)
 
-    # Padroniza os nomes das colunas
+    # 3. Padroniza os nomes das colunas
     df.columns = (
         df.columns
+        .str.normalize("NFKD")
+        .str.encode("ascii", errors="ignore")
+        .str.decode("ascii")
         .str.lower()
-        .str.replace(" ", "-")
+        .str.replace(" ", "_")
         .str.replace(r"[^a-z0-9_]", "", regex=True)
     )
+
+    # 4. Renomeia colunas ambíguas
+    df = df.rename(columns={
+        "grupo": "grupo_cid",
+    })
     return df

@@ -167,6 +167,7 @@ def processar_correcao(
 
     if caminho_original:
         df_original = pd.read_excel(caminho_original)
+        df_original = normalizar_colunas_revisao(df_original)
         metricas = calcular_diferencas(df_original, df_revisado)
         resultado["metricas"] = metricas
         logger.info(
@@ -183,6 +184,11 @@ def processar_correcao(
 
     # ETAPA 3: Anonimização
     try:
+        # Renomeia colunas de predição para o padrão da Bronze
+        df_revisado = df_revisado.rename(columns={
+            "PREVISAO_GRUPO": "GRUPO_SUS",
+            "PREVISAO_COMPLEXIDADE": "COMPLEXIDADE_SUS",
+        })
         df_anonimizado = anonimizar_dataframe(df_revisado)
         logger.info(f"Anonimização concluída: {len(df_anonimizado)} registros")
     except Exception as e:
@@ -193,8 +199,7 @@ def processar_correcao(
 
     # ETAPA 4: Adicionar metadados e enviar pra Bronze
     try:
-        df_anonimizado["safra_mes"] = safra_mes
-        qtd = enviar_para_bigquery(df_anonimizado)
+        qtd = enviar_para_bigquery(df_anonimizado, safra_mes)
         resultado["registros_enviados"] = qtd
         logger.info(f"{qtd} registros enviados para Bronze")
     except Exception as e:

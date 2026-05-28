@@ -97,6 +97,7 @@ def processar_previsoes(
         )
 
     metadados["stats"]["faltantes_mv"] = len(faltantes)
+    metadados["stats"]["lista_faltantes_mv"] = sorted(faltantes)
     metadados["stats"]["intrusos_removidos"] = len(intrusos)
     metadados["stats"]["total_apos_validacao"] = len(df_saidas)
 

@@ -214,6 +214,21 @@ def _exibir_resultado(df: pd.DataFrame, metadados: dict, mes_ref: str):
         for alerta in alertas:
             st.warning(f"⚠️ {alerta}")
 
+    # lista de atendimentos faltantes (constam no MV mas não na epidemio)
+    lista_faltantes = metadados.get("stats", {}).get("lista_faltantes_mv", [])
+    if lista_faltantes:
+        with st.expander(f"📋 {len(lista_faltantes)} atendimentos para buscar no MV"):
+            st.markdown(
+                "Esses atendimentos constam nas altas do MV mas **não foram encontrados** "
+                "na planilha Epidemio. Busque no sistema e adicione manualmente na planilha "
+                "antes de enviar as correções."
+            )
+            st.dataframe(
+                {"Nº Atendimento": lista_faltantes},
+                use_container_width=True,
+                hide_index=True,
+            )
+
     # métricas resumo
     stats = metadados.get("stats", {})
 

@@ -26,12 +26,9 @@ from pandera.pandas import Column, Check, DataFrameSchema
 
 logger = logging.getLogger(__name__)
 
-# -----------------------------------------------------------------------
 # DOMÍNIOS VÁLIDOS (extraídos do arquivo de classificação SUS)
-#
 # Fonte de verdade: data/Classificação_grupo&complexidade_SUS.xlsx
 # Se o SUS adicionar uma classe, atualizar o arquivo — o schema reflete.
-# -----------------------------------------------------------------------
 
 def _carregar_dominios() -> tuple[list[str], list[str]]:
     """
@@ -71,7 +68,6 @@ def _carregar_dominios() -> tuple[list[str], list[str]]:
 
 DOMINIO_GRUPO, DOMINIO_COMPLEXIDADE = _carregar_dominios()
 
-# -----------------------------------------------------------------------
 # NORMALIZAÇÃO PRÉ-VALIDAÇÃO
 #
 # A assistente digita livre no Excel — variações de casing, espaços
@@ -82,7 +78,6 @@ DOMINIO_GRUPO, DOMINIO_COMPLEXIDADE = _carregar_dominios()
 # oficial via comparação case-insensitive. Se casar, substitui pelo
 # valor canônico. Se não casar, deixa passar — o schema rejeita
 # com mensagem clara.
-# -----------------------------------------------------------------------
 
 def normalizar_colunas_revisao(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -102,6 +97,18 @@ def normalizar_colunas_revisao(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame com valores normalizados (cópia, não altera o original).
     """
     df = df.copy()
+
+    # normaliza nomes de colunas que o schema precisa em maiúsculo
+    mapa_colunas = {
+        "atendimento": "ATENDIMENTO",
+        "previsao_grupo": "PREVISAO_GRUPO",
+        "previsao_complexidade": "PREVISAO_COMPLEXIDADE",
+    }
+    df = df.rename(columns={
+        col: mapa_colunas[col.lower()]
+        for col in df.columns
+        if col.lower() in mapa_colunas
+    })
 
     mapa_colunas = {
         "PREVISAO_GRUPO": DOMINIO_GRUPO,
@@ -125,7 +132,6 @@ def normalizar_colunas_revisao(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-# -----------------------------------------------------------------------
 # SCHEMA: PLANILHA REVISADA (pós-correção da assistente)
 #
 # Valida DEPOIS da normalização. Por isso exige valores exatos do
@@ -138,7 +144,6 @@ def normalizar_colunas_revisao(df: pd.DataFrame) -> pd.DataFrame:
 #
 # strict=False porque a planilha revisada tem todas as outras colunas
 # do resultado original (confiança, CIDs, etc.)
-# -----------------------------------------------------------------------
 
 schema_pos_revisao = DataFrameSchema(
     columns={
