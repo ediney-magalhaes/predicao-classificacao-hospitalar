@@ -21,10 +21,17 @@ sistema_classificacaoSUS_inteligente/
 │   ├── inference/
 │   │   └── predicao.py                # Carregamento de modelos, predição, confiança, override
 │   ├── validacao/
-│   │   └── validacao.py               # Schemas Pandera para validação das 3 planilhas
+│   │   ├── validacao.py               # Schemas Pandera para validação das 3 planilhas de entrada
+│   │   └── schemas_pos_revisao.py     # Schemas Pandera pós-revisão + normalização case-insensitive
+│   ├── hitl/
+│   │   ├── pipeline_correcao.py       # Orquestrador do ciclo HITL (validação -> comparação -> ingestão)
+│   │   ├── comparador.py             # Cálculo pareado de diferenças original vs revisão
+│   │   └── auditoria.py              # Registro de eventos HITL no BigQuery
 │   └── ingestion/
 │       ├── anonimizacao.py            # SHA-256 + salt para dados sensíveis
-│       └── carga_bq.py               # Ingestão na Bronze do BigQuery
+│       └── carga_bq.py               # Ingestão na Bronze do BigQuery (idempotente por safra)
+├── scripts/
+│   └── ingestao_historica.py          # Ingestão única do CSV consolidado 2012-2024
 ├── data/
 │   └── Categorias de CIDs.xlsx        # Dicionário oficial CID-10 (referência fixa)
 ├── docs/
@@ -83,6 +90,57 @@ Resultado na GUI
 
 ### 2.2. Fluxo de Treinamento
 
+```
+Assistente baixa XLSX com predições
+│
+▼
+Correção no Excel (~2h)
+(altera PREVISAO_GRUPO e/ou PREVISAO_COMPLEXIDADE)
+│
+▼
+Upload na GUI (aba "Enviar Correções")
+│
+▼
+Validação pós-revisão (Pandera)
+── normalização case-insensitive contra domínios SUS
+── rejeita com mensagem clara se valor fora do domínio
+│
+▼
+Localização da predição original na W:
+(Banco Epidemio - Mês Ano - PREDICAO.xlsx)
+│
+▼
+Comparação pareada (src/hitl/comparador.py)
+├── Taxa de correção por variável-alvo
+├── Detalhamento de transições (de → para, quantidade)
+│
+▼
+Enriquecimento CID (merge com dicionário)
+├── capitulo_breve, grupo_cid
+│
+▼
+Anonimização (SHA-256 + salt)
+│
+▼
+DELETE por safra_mes (idempotência)
+│
+▼
+Append na Bronze (BigQuery)
+│
+▼
+Registro de auditoria (audit.hitl_events)
+│
+▼
+Resultado na GUI
+├── Correções em Grupo / Complexidade / ambas
+├── Taxa de correção por variável
+├── Detalhamento das transições
+
+```
+**Princípio de design:** o orquestrador (`pipeline_correcao.py`) segue o mesmo padrão do `gerar_previsoes.py` — recebe DataFrames, devolve dicionário de resultado. O `app.py` é apenas adapter visual. Pipeline testável sem GUI.
+
+### 2.3. Fluxo de Treinamento
+
 1. **Extração:** `executar_treino.py` conecta à Camada Bronze do BigQuery.
 2. **Filtro temporal:** Treina apenas com dados de 2020 em diante (combate a data drift histórico).
 3. **Balanceamento:** `ImbPipeline` garante que SMOTE ocorra apenas nos dados de treino durante validação cruzada.
@@ -130,7 +188,7 @@ Variáveis sensíveis (`SALT_SUS`, credenciais GCP) são lidas automaticamente d
 
 **Estrutura da GUI:**
 - Autenticação por senha (`st.secrets`)
-- Duas abas: "Gerar Predições" (ativa) e "Enviar Correções" (Fase 2, placeholder)
+- Duas abas: "Gerar Predições" e "Enviar Correções" (ambas operacionais)
 - Upload de 3 planilhas com validação automática
 - Resultado com alertas, métricas de confiança, distribuição e download
 
@@ -142,7 +200,7 @@ O sistema utiliza o Free Tier do Google Cloud (1 TB/mês de query, 10 GB storage
 
 ### Estado atual:
 
-- **🥉 Camada Bronze (Raw / Histórico Validado):** Tabela física. Única fonte de verdade. Recebe dados via append mensal após validação humana. **Implementada e em uso.**
+- **🥉 Camada Bronze (Raw / Histórico Validado):** Tabela física. Única fonte de verdade. 110.136 registros (2012-2026). Recebe dados via append mensal com deduplicação por safra (idempotente). Enriquecida com `capitulo_breve` e `grupo_cid` via dicionário CID. Auditoria em tabela separada (`audit.hitl_events`). **Implementada e em uso.**
 
 - **🥈 Camada Silver (Standardized / Enriched):** View SQL lógica. Limpeza padronizada (tipagem, nulls, nomenclatura). **Planejada para Fase 3.**
 
@@ -167,13 +225,13 @@ Cada predição acompanha um score de confiança (`max(predict_proba)`). Valores
 Trava de segurança que corrige predições onde o modelo disse "Procedimentos clínicos" mas o paciente possui registro de cirurgia realizada. Valores e classes configuráveis via `settings.py`.
 
 ### 7.3. Human-in-the-Loop
-A IA atua como sistema de suporte à decisão. A assistente revisa as predições, corrige erros e futuramente (Fase 2) reenvia a planilha corrigida ao sistema, que detecta diferenças e alimenta a Bronze para retreino.
+A IA atua como sistema de suporte à decisão. A assistente revisa as predições, corrige erros e reenvia a planilha corrigida pela GUI. O sistema detecta diferenças (taxa de correção por variável-alvo com detalhamento de transições), anonimiza e alimenta a Bronze para retreino. Cada evento é registrado na tabela de auditoria com revisor, timestamp e métricas.
 
 ### 7.4. Cache de Modelos
 Os modelos LightGBM são carregados uma vez e cacheados em memória (`src/inference/predicao.py`). Chamadas subsequentes reutilizam o cache sem recarregar do disco.
 
 ### 7.5. Evolução Planejada (Roadmap)
-- **Fase 2:** Ciclo HITL automatizado (upload de correções, auditoria, ingestão na Bronze)
+- **Fase 2:** Ciclo HITL automatizado ✅ (upload de correções, comparação, auditoria, ingestão histórica na Bronze)
 - **Fase 3:** Silver/Gold em dbt, dashboard BI
 - **Fase 4:** Monitoramento de drift (PSI, performance ao longo do tempo)
 - **Fase 5:** Continuous Training com champion vs challenger

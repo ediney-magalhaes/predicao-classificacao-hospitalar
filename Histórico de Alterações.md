@@ -9,6 +9,27 @@ O projeto adota **Versionamento Semântico (SemVer)**: `MAJOR.MINOR.PATCH`
 
 ---
 
+## v6.0.0 (Maio de 2026)
+* **Assunto:** Ciclo HITL Automatizado + Ingestão Histórica na Bronze.
+* **Mudança:** Implementação completa da Fase 2 — a assistente agora envia correções pela GUI, o sistema detecta diferenças, anonimiza e ingere na Bronze do BigQuery automaticamente. Bronze recriada do zero com 110.136 registros (2012-2026).
+* **Motivo:** Após a Fase 1, a planilha corrigida morria no PC da assistente. Sem ela de volta no pipeline, não havia como medir taxa de correção, alimentar a Bronze com labels confiáveis para retreino, nem auditar quem revisou o quê.
+* **Ações:**
+    1. **Pipeline de correção:** `src/hitl/pipeline_correcao.py` orquestra o fluxo completo pós-revisão: validação (Pandera) -> localização da predição original na W: -> comparação pareada -> enriquecimento CID -> anonimização (SHA-256 + salt) -> append na Bronze -> registro de auditoria.
+    2. **Comparador:** `src/hitl/comparador.py` calcula diferenças entre predição original e revisão humana. Métricas: taxa de correção por variável-alvo, detalhamento das transições (ex: "Procedimentos cirúrgicos -> Procedimentos clínicos: 101 ocorrências").
+    3. **Auditoria:** `src/hitl/auditoria.py` registra cada evento HITL no BigQuery (`audit.hitl_events`) com revisor, timestamp, hash do arquivo, safra e métricas de correção.
+    4. **Validação pós-revisão:** `src/validacao/schemas_pos_revisao.py` com normalização case-insensitive dos valores digitados pela assistente contra domínios oficiais do SUS (carregados do dicionário de classificação).
+    5. **Enriquecimento CID:** `engenharia_features` integrado ao pipeline de correção — merge com dicionário CID traz `capitulo_breve` e `grupo_cid` para a Bronze via coluna auxiliar (preserva `cid_1_principal` original com código + descrição).
+    6. **Deduplicação por safra:** `carga_bq.py` executa DELETE por `safra_mes` antes do append, garantindo idempotência — reprocessar um mês não duplica dados.
+    7. **Atendimentos faltantes:** GUI exibe números de atendimento que constam no MV mas não na planilha epidemio, para a assistente buscar no sistema hospitalar.
+    8. **Ingestão histórica:** `scripts/ingestao_historica.py` processou o CSV consolidado (2012-2024): 109.333 registros em 150 safras, com enriquecimento CID e anonimização. Idempotente via deduplicação por safra.
+    9. **Correção de bug crítico:** `carga_bq.py` usava `if_exists='replace'` — Bronze ficou estática desde fevereiro de 2026. Corrigido para `append` com deduplicação.
+* **ADR fechada:** ADR-0003 (storage de planilhas na W: com pipeline de ingestão anonimizada para BigQuery).
+* **Bronze:** 110.136 registros totais (109.333 históricos + 803 de abril/2026). Schema com 54 colunas incluindo `capitulo_breve`, `grupo_cid`, `safra_mes` e `data_ingestao`.
+* **Métricas de baseline (abril/2026):** Taxa de correção Grupo: 13.3% (107/803). Taxa de correção Complexidade: 0.0%. Transição dominante: "Procedimentos cirúrgicos -> Procedimentos clínicos" (101 de 107 correções).
+* **Resultado:** Ciclo HITL fechado — assistente gera predições, corrige no Excel, envia correções pela GUI, sistema compara, anonimiza e ingere na Bronze sem intervenção do Ediney. Pipeline pronto para alimentar Continuous Training na Fase 5.
+
+---
+
 ## v5.0.0 (Maio de 2026)
 * **Assunto:** Refatoração Arquitetural + GUI Streamlit + Validação em Camadas.
 * **Mudança:** Reestruturação completa do projeto — separação de I/O e lógica de negócio, introdução de configuração centralizada, módulo de inferência isolado, validação de entrada com Pandera, e interface gráfica para a assistente.

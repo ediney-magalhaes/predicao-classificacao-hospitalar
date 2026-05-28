@@ -97,25 +97,26 @@ W: como storage primário dos dados brutos. GCS recebe apenas cópia anonimizada
 ```
 W:\...\Epidemio\
 ├── 2026\
-│   ├── 01_janeiro\
-│   │   ├── previsoes_original_202601.xlsx    # Output do modelo (antes da revisão)
-│   │   └── previsoes_revisada_202601.xlsx    # Após correção da assistente
-│   ├── 02_fevereiro\
-│   ├── 03_marco\
-│   ├── 04_abril\
+│   ├── Banco Epidemio - Janeiro 2026.xlsx              # Planilha revisada pela assistente
+│   ├── Banco Epidemio - Janeiro 2026 - PREDICAO.xlsx   # Output do modelo (cópia de referência)
+│   ├── Banco Epidemio - Fevereiro 2026.xlsx
+│   ├── Banco Epidemio - Fevereiro 2026 - PREDICAO.xlsx
 │   └── ...
-└── 2027\
-    └── ...
+├── 2025\
+│   └── ...
+└── historico desde 2012
 ```
 
 ### Pipeline de ingestão
 
 ```
-W: (planilha revisada)
-  → Leitura pelo app Streamlit
-  → Detecção de diferenças (predição vs revisão)
-  → Anonimização (SHA-256 + salt)
-  → Validação de schema (Pandera)
+W: (planilha revisada, upload pela assistente na aba 2 da GUI)
+  → Validação de schema (Pandera) com normalização case-insensitive
+  → Localização da predição original na W: (sufixo - PREDICAO)
+  → Detecção de diferenças pareadas (original vs revisão)
+  → Enriquecimento CID (merge com dicionário → capitulo_breve, grupo_cid)
+  → Anonimização (SHA-256 + salt nos campos PII)
+  → DELETE por safra_mes na Bronze (garante idempotência)
   → Append na Bronze (BigQuery)
   → Registro de auditoria (BigQuery: audit.hitl_events)
 ```
