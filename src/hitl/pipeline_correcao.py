@@ -13,9 +13,10 @@ Quem chama este módulo (app.py, script, teste) não precisa conhecer
 os passos internos — só chama processar_correcao() e recebe o resultado.
 
 """
-
+import os
 import logging
 from pathlib import Path
+from datetime import datetime
 
 import pandas as pd
 
@@ -176,6 +177,15 @@ def processar_correcao(
             f"correções em Grupo, {metricas.get('correcoes_complexidade', 0)} "
             f"em Complexidade"
         )
+        # tempo de ciclo: da previsão até a correção
+        if tempo_revisao_min is None:
+            mtime_geracao = datetime.fromtimestamp(caminho_original.stat().st_mtime)
+            delta = datetime.now() - mtime_geracao
+            tempo_revisao_min = round(delta.total_seconds() / 60)
+            logger.info(
+                f"Tempo de ciclo calculado via mtime: {tempo_revisao_min} min"
+                f"gerado em {mtime_geracao}, corrigido em {datetime.now()}"
+            )
     else:
         logger.warning(
             f"Predição original não encontrada para {safra_mes}. "
