@@ -20,3 +20,4 @@ docs/AI_PROJECT_INSTRUCTIONS.md
 
 # Senha app
 .streamlit/secrets.toml
+logs/
