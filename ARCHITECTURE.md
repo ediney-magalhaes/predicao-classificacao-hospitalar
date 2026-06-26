@@ -34,6 +34,16 @@ sistema_classificacaoSUS_inteligente/
 │   └── ingestao_historica.py          # Ingestão única do CSV consolidado 2012-2024
 ├── data/
 │   └── Categorias de CIDs.xlsx        # Dicionário oficial CID-10 (referência fixa)
+├── dbt_classificacao_analytics/       # Camada analítica dbt (Fase 3 — em construção)
+│   └── models/
+│       ├── staging/
+│       │   ├── sources.yml            # Declaração da fonte Bronze
+│       │   └── stg_bronze__saidas.sql # Tipagem de datas (3 formatos coexistentes)
+│       ├── intermediate/              # Sem models ainda
+│       └── marts/
+│           ├── assistencial/          # Sem models ainda
+│           ├── modelo/                # Sem models ainda
+│           └── financeiro/            # Suspenso (ver amendment ADR-0004)
 ├── docs/
 │   ├── adr/                           # Architecture Decision Records
 │   ├── runbooks/                      # Procedimentos operacionais
@@ -202,7 +212,7 @@ O sistema utiliza o Free Tier do Google Cloud (1 TB/mês de query, 10 GB storage
 
 - **🥉 Camada Bronze (Raw / Histórico Validado):** Tabela física. Única fonte de verdade. 110.136 registros (2012-2026). Recebe dados via append mensal com deduplicação por safra (idempotente). Enriquecida com `capitulo_breve` e `grupo_cid` via dicionário CID. Auditoria em tabela separada (`audit.hitl_events`). **Implementada e em uso.**
 
-- **🥈 Camada Silver (Standardized / Enriched):** View SQL lógica. Limpeza padronizada (tipagem, nulls, nomenclatura). **Planejada para Fase 3.**
+- **🥈 Camada Silver (Standardized / Enriched):** View SQL lógica. Limpeza padronizada (tipagem, nulls, nomenclatura). **Em construção (Fase 3) — primeiro model (`stg_bronze__saidas`) implementado, tipagem de data completa; demais colunas pendentes.**
 
 - **🥇 Camada Gold (Aggregated / Business-Ready):** View SQL lógica. Agregações para consumo do BI (volumetria, performance, taxa de correção). **Planejada para Fase 3.**
 

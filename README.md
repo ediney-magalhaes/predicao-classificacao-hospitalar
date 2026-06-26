@@ -150,6 +150,16 @@ Pydantic BaseSettings centraliza caminhos de modelos, listas de features, thresh
 │   └── ingestao_historica.py       # Ingestão única 2012-2024 (109k registros)
 ├── data/
 │   └── Categorias de CIDs.xlsx     # Dicionário oficial CID-10
+├── dbt_classificacao_analytics/    # Camada analítica (Fase 3 — em construção)
+│   └── models/
+│       ├── staging/
+│       │   ├── sources.yml         # Declaração da fonte Bronze
+│       │   └── stg_bronze__saidas.sql  # Tipagem de datas (3 formatos coexistentes)
+│       ├── intermediate/           # Placeholder — sem models ainda
+│       └── marts/
+│           ├── assistencial/       # Placeholder — sem models ainda
+│           ├── modelo/             # Placeholder — sem models ainda
+│           └── financeiro/         # Suspenso (ver amendment ADR-0004)
 ├── docs/
 │   ├── adr/                        # Architecture Decision Records
 │   ├── runbooks/                   # Procedimentos operacionais

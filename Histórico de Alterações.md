@@ -9,6 +9,24 @@ O projeto adota **Versionamento Semântico (SemVer)**: `MAJOR.MINOR.PATCH`
 
 ---
 
+## Em andamento — Fase 3 (Camada Analítica em dbt)
+
+* **Assunto:** Estrutura inicial do projeto dbt e primeiro model de staging.
+* **Status:** Parcial — não consolidado em versão até o fechamento dos critérios de pronto da Fase 3.
+* **Ações realizadas até aqui:**
+    1. **Setup dbt Core:** `dbt init`, `profiles.yml` configurado com service account, `dbt debug` validado contra `ml-classificacao-sus`.
+    2. **ADR-0004 fechada:** estratégia de Views por camada (staging/intermediate/marts), datasets separados no BigQuery.
+    3. **Amendment ADR-0004:** `marts_financeiro` suspenso — colunas `vl_conta`/`vl_honorario` excluídas da ingestão Bronze por falta de validação de integridade.
+    4. **`sources.yml`:** fonte `bronze_saidas_anonimizado` declarada (54 colunas, dataset `dados_saidas_hospitalares`).
+    5. **`stg_bronze__saidas.sql` (parcial):** tipagem de 6 colunas de data/hora. Tratamento de 3 formatos coexistentes na Bronze histórica (brasileiro, ISO, número serial do Excel) via `COALESCE` + `SAFE.PARSE_DATE`/`PARSE_DATETIME`. Combinação de `dt_alta` + `hr_alta` em datetime único.
+* **Pendências:**
+    - [ ] Adicionar as demais 48 colunas (não-data) ao `stg_bronze__saidas.sql`
+    - [ ] Models de `intermediate/` e `marts/{assistencial,modelo}/`
+    - [ ] dbt tests e contracts
+    - [ ] dbt docs gerado
+
+---
+
 ## v6.0.0 (Maio de 2026)
 * **Assunto:** Ciclo HITL Automatizado + Ingestão Histórica na Bronze.
 * **Mudança:** Implementação completa da Fase 2 — a assistente agora envia correções pela GUI, o sistema detecta diferenças, anonimiza e ingere na Bronze do BigQuery automaticamente. Bronze recriada do zero com 110.136 registros (2012-2026).
