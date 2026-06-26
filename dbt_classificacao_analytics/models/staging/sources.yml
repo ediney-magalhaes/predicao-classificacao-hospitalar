@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+    - name: bronze
+      database: ml-classificacao-sus
+      schema: dados_saidas_hospitalares
+      tables:
+        - name: bronze_saidas_anonimizado

@@ -207,3 +207,20 @@ Análise exploratória com `vl_conta`, `vl_honorario`, `nr_dias`. Sem estimativa
 - [BigQuery free tier](https://cloud.google.com/bigquery/pricing#free-tier)
 - ADR-0001 — Validação de dados em camadas (Pydantic + Pandera + dbt)
 - ADR-0003 — Storage de planilhas e pipeline de ingestão
+
+## Atualização — 2026-06-25
+
+**Status da seção "marts_financeiro":** ⚠️ Suspensa (não implementada na Fase 3)
+
+**Motivo:** As colunas `vl_conta` e `vl_honorario`, base de todos os 5 estudos financeiros descritos na seção "Escopo dos Marts", não passaram por validação de integridade até o momento desta atualização. Não há garantia de que os valores refletem corretamente o faturamento real — gerar análises (dispersão, viés de correção, sazonalidade) sobre dado não validado produziria conclusões com aparência de confiabilidade que não correspondem à realidade, risco maior do que simplesmente não ter o estudo.
+
+**O que muda:**
+- A pasta `models/marts/financeiro/` permanece na estrutura do projeto como placeholder, sem nenhum model `.sql` implementado
+- O dataset `marts_financeiro` no BigQuery não é criado nesta fase
+- Os 5 estudos financeiros ficam formalmente bloqueados até a validação de `vl_conta`/`vl_honorario` ser resolvida
+
+**O que permanece válido:**
+- Toda a decisão de arquitetura (dbt Core local, Views, datasets separados por camada, convenções de nomenclatura) continua de pé
+- `marts_assistencial` e `marts_modelo` seguem o escopo original sem alteração
+
+**Novo item na lista de deferidos de fim de projeto:** validação de `vl_conta`/`vl_honorario` (ferramenta de validação a definir — possivelmente reconciliação cruzada com o sistema de faturamento/AIH).
