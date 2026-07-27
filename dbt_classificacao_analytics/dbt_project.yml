@@ -25,5 +25,14 @@ models:
       +materialized: view
     intermediate:
       +materialized: view
+      +schema: intermediate
     marts:
-      +materialized: view
+      assistencial:
+        +materialized: view
+        +schema: marts_assistencial
+      modelo:
+        +materialized: view
+        +schema: marts_modelo
+      financeiro:
+        +materialized: view
+        +schema: marts_financeiro

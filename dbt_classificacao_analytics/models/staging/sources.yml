@@ -6,3 +6,9 @@ sources:
       schema: dados_saidas_hospitalares
       tables:
         - name: bronze_saidas_anonimizado
+        
+    - name: audit
+      database: ml-classificacao-sus
+      schema: audit
+      tables:
+        - name: hitl_events
