@@ -19,8 +19,14 @@ O projeto adota **Versionamento Semântico (SemVer)**: `MAJOR.MINOR.PATCH`
     3. **Amendment ADR-0004:** `marts_financeiro` suspenso — colunas `vl_conta`/`vl_honorario` excluídas da ingestão Bronze por falta de validação de integridade.
     4. **`sources.yml`:** fonte `bronze_saidas_anonimizado` declarada (54 colunas, dataset `dados_saidas_hospitalares`).
     5. **`stg_bronze__saidas.sql` (parcial):** tipagem de 6 colunas de data/hora. Tratamento de 3 formatos coexistentes na Bronze histórica (brasileiro, ISO, número serial do Excel) via `COALESCE` + `SAFE.PARSE_DATE`/`PARSE_DATETIME`. Combinação de `dt_alta` + `hr_alta` em datetime único.
+    6. **`dbt-utils` e `dbt-codegen` instalados** via `packages.yml` (versões 1.3.0 e 0.13.1). Esqueleto das 46 colunas não-data gerado com `dbt-codegen` (`generate_base_model`) e integrado manualmente ao `.sql`.
+    7. **Primeiro conjunto de dbt tests do projeto**, declarado em `stg_bronze__saidas.yml`:
+        - `dbt_utils.accepted_range` em `previsao_alta` (severidade `warn`): identificou 5 registros com datetime implausível (ex: valor serial fora de qualquer faixa plausível), sem bloquear o pipeline.
+        - `accepted_values` em `sexo` (`F`, `M`, `I` — "I" confirmado como "Indeterminado", categoria válida).
+        - `accepted_values` em `grupo_sus` e `complexidade_sus`, validados contra as categorias oficiais da tabela SUS.
+    8. **Decisão de escopo de testes:** colunas categóricas controladas por lista fixa de sistema (`uf`, `tipo_internacao`), numéricas sem uso downstream planejado (`qtd_*`) e geradas pelo próprio pipeline de predição (`confianca_grupo`, `confianca_complexidade`) foram deliberadamente deixadas sem teste, por baixo risco/baixo retorno.
+* **Workaround de ambiente:** limite de path do Windows (MAX_PATH) ao instalar `dbt_utils` via caminho profundo do OneDrive, contornado com `subst D:` apontando para a pasta `dbt_classificacao_analytics` — não requer admin, mas não é persistente entre reinícios (precisa ser recriado a cada sessão).
 * **Pendências:**
-    - [ ] Adicionar as demais 48 colunas (não-data) ao `stg_bronze__saidas.sql`
     - [ ] Models de `intermediate/` e `marts/{assistencial,modelo}/`
     - [ ] dbt tests e contracts
     - [ ] dbt docs gerado
