@@ -12,6 +12,7 @@ dados/
 # Extensões de Arquivos de Dados e Modelos
 *.json
 *.csv
+!dbt_classificacao_analytics/seeds/*.csv
 *.xlsx
 *.joblib
 
