@@ -148,6 +148,17 @@ Revisitar para `table` se: Power BI reportar tempo de atualização > 30 segundo
 - Top 10 CIDs principais (`cid_1_principal`)
 - Sazonalidade mensal e anual
 
+## Atualização — 2026-07-28
+
+**Escopo de marts_assistencial revisado:** a seção original previa dois models 
+(mart_perfil_paciente e mart_volume_assistencial). Na implementação, optou-se por 
+um único model (mart_volume_assistencial), grão de 1 linha por atendimento, cobrindo 
+todas as dimensões de ambos os escopos originais (sexo, faixa etária, UTI quando 
+disponível, dias de internação, município, CID, volumetria). Motivo: grão de 
+atendimento já permite qualquer agregação que os dois marts separados ofereceriam, 
+sem duplicação de base. mart_perfil_paciente não será implementado como model 
+separado, salvo necessidade futura identificada pelos estudos estatísticos (ADR-0005).
+
 ### `marts_modelo`
 
 **mart_desempenho_modelo** — métricas de performance por safra:
