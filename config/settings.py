@@ -167,6 +167,10 @@ class Settings(BaseSettings):
         default="audit.hitl_events",
         description="Tabela de auditoria HITL no BigQuery (dataset.tabela)"
     )
+    bq_tabela_movimentacoes: str = Field(
+    default="dados_saidas_hospitalares.bronze_movimentacoes_anonimizado",
+    description="Tabela bronze de movimentações no BigQuery (dataset.tabela)"
+    )
 
     # ANONIMIZAÇÃO (LGPD)
     # Colunas que contêm dados sensíveis. Separadas em dois grupos:
@@ -174,8 +178,8 @@ class Settings(BaseSettings):
     #   registros sem expor o dado real)
     # - drop: a coluna é removida completamente (dado sem valor analítico)
     colunas_hash: list[str] = Field(
-        default=["nome_paciente","nm_med_presc", "medico_sumario_alta", "medico_resp_atend"],
-        description="Colunas que serão substituídas por hash SHA-256 + salt"
+    default=["nome_paciente","nm_med_presc", "medico_sumario_alta", "medico_resp_atend", "nm_paciente"],
+    description="Colunas que serão substituídas por hash SHA-256 + salt"
     )
     colunas_drop: list[str] = Field(
         default=[

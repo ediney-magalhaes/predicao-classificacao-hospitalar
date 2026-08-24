@@ -24,6 +24,7 @@ from config.settings import settings
 from src.validacao.validacao import validar_saidas, validar_altas, validar_cirurgias
 from gerar_previsoes import processar_previsoes
 from src.hitl.pipeline_correcao import salvar_predicao_original, processar_correcao
+from src.ingestion.ingestao_movimentacoes import processar_movimentacoes
 
 # LOGGING
 logging.basicConfig(
@@ -350,14 +351,25 @@ def aba_enviar_correcoes():
         help="O arquivo que você corrigiu no Excel após revisar as predições",
     )
 
-    if arquivo_revisado:
+    arquivo_movimentacoes = st.file_uploader(
+    "📄 Relatório de Movimentações",
+    type=["xlsx"],
+    key="upload_movimentacoes",
+    help="Relatório bruto de movimentações exportado do sistema, salvo em Excel (sem tratamento)",
+    )
+
+    if arquivo_revisado and arquivo_movimentacoes:
         try:
             df_revisado = pd.read_excel(arquivo_revisado)
+            df_movimentacoes = pd.read_excel(arquivo_movimentacoes, header=None)
         except Exception as e:
             st.error(f"Erro ao ler o arquivo: {e}")
             return
 
-        st.success(f"Arquivo carregado: {len(df_revisado)} registros")
+        st.success(
+            f"Arquivos carregados: {len(df_revisado)} registros de correção, "
+            f"{len(df_movimentacoes)} registros de movimentações"
+        )
 
         safra = f"{ano}-{mes:02d}"
 
@@ -368,6 +380,11 @@ def aba_enviar_correcoes():
                     df_revisado=df_revisado,
                     safra_mes=safra,
                     revisor="assistente_epidemio",
+                )
+            with st.spinner("Processando movimentações... Validando e enviando."):
+                resultado_movimentacoes = processar_movimentacoes(
+                    df_movimentacoes=df_movimentacoes,
+                    safra_mes=safra,
                 )
 
             # exibir resultado
@@ -427,6 +444,14 @@ def aba_enviar_correcoes():
             else:
                 st.error(f"❌ Falha na etapa: **{resultado['etapa_falha']}**")
                 st.markdown(resultado["mensagem"])
+
+            st.divider()
+
+            if resultado_movimentacoes["sucesso"]:
+                st.success(f"✅ {resultado_movimentacoes['mensagem']}")
+            else:
+                st.error(f"❌ Falha na etapa: **{resultado_movimentacoes['etapa_falha']}**")
+                st.markdown(resultado_movimentacoes["mensagem"])
     else:
         st.info("Faça upload da planilha revisada para continuar.")
 
