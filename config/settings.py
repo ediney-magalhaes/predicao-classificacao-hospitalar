@@ -204,7 +204,7 @@ class Settings(BaseSettings):
             "procedimento_5", "procedimento_6", "procedimento_7",
             "procedimento_8", "procedimento_9", "procedimento_10",
             "correção_idade", "faixa etaria", "dia semana",
-            "mês", "ano", "hora",
+            "mês", "ano",
             "fonte_pagadora", "convênio_padronizado", "nº_pacientes",
             "cid_principal", "fatores_breves", "cod_procedimento",
             "grupo_categoria", "subcategoria cid-10 (4 dígitos)",

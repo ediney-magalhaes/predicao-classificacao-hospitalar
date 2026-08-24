@@ -6,6 +6,7 @@ sources:
       schema: dados_saidas_hospitalares
       tables:
         - name: bronze_saidas_anonimizado
+        - name: bronze_movimentacoes_anonimizado
         
     - name: audit
       database: ml-classificacao-sus
