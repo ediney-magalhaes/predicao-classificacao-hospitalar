@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: mart_uti
+    description: >
+      Uma linha por atendimento, agregando todas as passagens por
+      unidades de UTI capturadas no relatório de movimentações.
+      Consumidor direto: Estudo de correlação UTI x complexidade
+      (ADR-0005). teve_uti e dias_totais_uti só refletem passagens
+      dentro da janela de safras já ingeridas — atendimentos com
+      jornada iniciada antes disso podem subestimar o tempo real de UTI.
+    columns:
+      - name: atendimento
+        description: Chave do atendimento, mesma da Bronze principal.
+        tests:
+          - unique
+          - not_null
+
+      - name: teve_uti
+        description: True se o atendimento teve ao menos uma passagem por UTI.
+
+      - name: dias_totais_uti
+        description: Soma de dias em unidades de UTI, somando todas as passagens.
