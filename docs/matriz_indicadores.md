@@ -21,10 +21,10 @@
 | Sazonalidade | safra_mes | `safra_mes` | Disponível |
 | Dias médios de internação | grupo_sus, complexidade_sus | `nr_dias` | Disponível |
 | Distribuição por sexo | safra_mes | `sexo` | Disponível |
-| Distribuição por faixa etária | safra_mes | `idade` (INT64) — **faixas/buckets ainda não definidos**, decidir ao construir o model | Disponível, pendente de definição de corte |
+| Distribuição por faixa etária | safra_mes | `idade` (INT64), enriquecido via seed `faixa_etaria.csv` (LEFT JOIN em `mart_volume_assistencial`) | Disponível |
 | Top municípios de origem | safra_mes | `municipio` | Disponível |
 | Distribuição por convênio | safra_mes | `convenio` | Disponível (fora do escopo original da ADR-0004, dado existe) |
-| Taxa de internação em UTI | grupo_sus, complexidade_sus | 9 colunas relacionadas (`entrada_uti`, `qtd_uti_geral`, `qtd_uco`, etc.) | **Bloqueado** — inconsistência interna confirmada entre colunas (ver Fase 2, item reaberto 2026-07-27); regra de negócio não pode ser definida sem validação contra o sistema MV de origem |
+| Taxa de internação em UTI | atendimento (teve_uti, dias_totais_uti) | **Resolvido via fonte alternativa** (2026-08-21), não usa as 9 colunas originais da Bronze (permanecem com inconsistência não explicada, não confiáveis). Fonte real: relatório de movimentações internas, processado via `mart_uti`. **Não vive em `marts_assistencial`**, está em `marts_modelo`, pois seu consumo real é o Estudo 4 (correlação UTI×complexidade, ADR-0005), não uma métrica assistencial de rotina. Se este indicador for necessário aqui, requer JOIN cross-dataset com `marts_modelo.mart_uti` |
 
 ---
 

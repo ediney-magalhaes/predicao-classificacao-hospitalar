@@ -13,8 +13,8 @@ Procedimentos passo-a-passo para operações recorrentes do Sistema Preditivo de
 
 | Runbook | Título | Público | Fase |
 |---|---|---|---|
-| RB-001 | Gerar previsões mensais (terminal) | Ediney | Fase 0 |
-| RB-002 | Gerar previsões mensais (Streamlit) | Assistente | Fase 1 |
+| RB-001 | Iniciar o sistema (terminal / .bat) | Ediney | Fase 0 |
+| RB-002 | Gerar previsões mensais (uso da GUI) | Assistente | Fase 1 |
 | RB-003 | Upload de planilha revisada | Assistente | Fase 2 |
 | RB-004 | Retreinar modelo manualmente | Ediney | Fase 5 |
 | RB-005 | Investigar alerta de drift | Ediney | Fase 4 |

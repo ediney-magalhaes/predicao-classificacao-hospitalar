@@ -11,25 +11,35 @@ O projeto adota **Versionamento Semântico (SemVer)**: `MAJOR.MINOR.PATCH`
 
 ## Em andamento — Fase 3 (Camada Analítica em dbt)
 
-* **Assunto:** Estrutura inicial do projeto dbt e primeiro model de staging.
-* **Status:** Parcial — não consolidado em versão até o fechamento dos critérios de pronto da Fase 3.
+* **Assunto:** Estrutura do projeto dbt, staging/intermediate/marts, 4ª fonte
+  de dados (UTI), previsão bruta na Bronze, investigação financeira.
+* **Status:** Parcial — não consolidado em versão até o fechamento dos
+  critérios de pronto da Fase 3.
 * **Ações realizadas até aqui:**
     1. **Setup dbt Core:** `dbt init`, `profiles.yml` configurado com service account, `dbt debug` validado contra `ml-classificacao-sus`.
     2. **ADR-0004 fechada:** estratégia de Views por camada (staging/intermediate/marts), datasets separados no BigQuery.
-    3. **Amendment ADR-0004:** `marts_financeiro` suspenso — colunas `vl_conta`/`vl_honorario` excluídas da ingestão Bronze por falta de validação de integridade.
-    4. **`sources.yml`:** fonte `bronze_saidas_anonimizado` declarada (54 colunas, dataset `dados_saidas_hospitalares`).
-    5. **`stg_bronze__saidas.sql` (parcial):** tipagem de 6 colunas de data/hora. Tratamento de 3 formatos coexistentes na Bronze histórica (brasileiro, ISO, número serial do Excel) via `COALESCE` + `SAFE.PARSE_DATE`/`PARSE_DATETIME`. Combinação de `dt_alta` + `hr_alta` em datetime único.
-    6. **`dbt-utils` e `dbt-codegen` instalados** via `packages.yml` (versões 1.3.0 e 0.13.1). Esqueleto das 46 colunas não-data gerado com `dbt-codegen` (`generate_base_model`) e integrado manualmente ao `.sql`.
-    7. **Primeiro conjunto de dbt tests do projeto**, declarado em `stg_bronze__saidas.yml`:
-        - `dbt_utils.accepted_range` em `previsao_alta` (severidade `warn`): identificou 5 registros com datetime implausível (ex: valor serial fora de qualquer faixa plausível), sem bloquear o pipeline.
-        - `accepted_values` em `sexo` (`F`, `M`, `I` — "I" confirmado como "Indeterminado", categoria válida).
-        - `accepted_values` em `grupo_sus` e `complexidade_sus`, validados contra as categorias oficiais da tabela SUS.
-    8. **Decisão de escopo de testes:** colunas categóricas controladas por lista fixa de sistema (`uf`, `tipo_internacao`), numéricas sem uso downstream planejado (`qtd_*`) e geradas pelo próprio pipeline de predição (`confianca_grupo`, `confianca_complexidade`) foram deliberadamente deixadas sem teste, por baixo risco/baixo retorno.
-* **Workaround de ambiente:** limite de path do Windows (MAX_PATH) ao instalar `dbt_utils` via caminho profundo do OneDrive, contornado com `subst D:` apontando para a pasta `dbt_classificacao_analytics` — não requer admin, mas não é persistente entre reinícios (precisa ser recriado a cada sessão).
+    3. **Amendment ADR-0004 (parte 1):** `marts_financeiro` suspenso — colunas `vl_conta`/`vl_honorario` excluídas da ingestão Bronze por falta de validação de integridade.
+    4. **`sources.yml`:** fontes `bronze_saidas_anonimizado` e `bronze_movimentacoes_anonimizado` declaradas, junto com `audit.hitl_events`.
+    5. **`stg_bronze__saidas.sql` (completo):** tipagem de 6 colunas de data/hora (3 formatos coexistentes: brasileiro, ISO, número serial do Excel) via `COALESCE` + `SAFE.PARSE_DATE`/`PARSE_DATETIME`. Combinação de `dt_alta` + `hr_alta` em datetime único. Demais 46 colunas geradas via `dbt-codegen`.
+    6. **`dbt-utils` e `dbt-codegen` instalados** via `packages.yml` (versões 1.3.0 e 0.13.1).
+    7. **Primeiro conjunto de dbt tests do projeto**, declarado em `stg_bronze__saidas.yml`: `dbt_utils.accepted_range` em `previsao_alta` (severidade `warn`), `accepted_values` em `sexo`, `grupo_sus`, `complexidade_sus`.
+    8. **`mart_volume_assistencial.sql`:** grão=atendimento, enriquecido via 3 seeds (faixa_etaria, mapa_convenio_fonte, mapa_leito_unidade). Testado.
+    9. **`int_correcoes_hitl.sql` + `mart_taxa_correcao.sql`:** deduplicação de auditoria por safra_mes, taxas de correção por safra e versão do modelo. Testado.
+    10. **Previsão bruta na Bronze (previsao_grupo/previsao_complexidade):** correção de causa raiz — `pipeline_correcao.py` renomeava `PREVISAO_GRUPO`→`GRUPO_SUS` antes de anonimizar, sobrescrevendo a predição bruta sem preservá-la. Corrigido via merge com predição original (salva na W:) antes do rename. Bronze recebeu `ALTER TABLE` (STRING NULLABLE). Testado com dado real de julho/2026 (7 atendimentos corrigidos de propósito, previsao_grupo confirmado preservando o valor do modelo). Desbloqueia `mart_desempenho_modelo` e "Top 5 transições de erro".
+    11. **4ª fonte de dados — relatório de movimentações (UTI):** pipeline completo do zero. Schema Pandera (`schemas_movimentacoes.py`), reconstrução de layout bruto (`preprocessamento_movimentacoes.py` — o relatório do sistema nasce sem cabeçalho reconhecível, colunas por posição), anonimização, nova tabela Bronze (`bronze_movimentacoes_anonimizado`). Staging (`stg_bronze__movimentacoes.sql`) combina DATA+HORA em timestamp. Intermediate (`int_movimentacoes_uti.sql`) pareia cronologicamente eventos de entrada (INTERNACAO, TRANSFER. DE) e saída (TRANSFER. PARA, ALTA) por unidade, calculando permanência — passou por duas correções estruturais até ficar correto (direção do LEAD/LAG, classificação correta de entrada/saída; casos de paciente internado direto em UTI e última unidade antes da alta estavam sendo perdidos). Mart (`mart_uti.sql`, em `marts_modelo` — não `marts_assistencial`, pois seu consumo real é análise de correlação, não métrica assistencial de rotina) agrega `teve_uti` + `dias_totais_uti` por atendimento. Testado com dado real (safras de março e julho/2026). Desbloqueia Estudo 4 do ADR-0005.
+    12. **Amendment ADR-0003:** documenta a 4ª fonte de dados (movimentações) — subpasta na W:, pipeline de ingestão, decisão de manter dado bruto sem agregação (Medallion).
+    13. **Investigação financeira (amendment ADR-0004, parte 2):** dos 5 estudos originais do `marts_financeiro`, confirmado que só 2 (dispersão valor×complexidade, distribuição de correção por valor) realmente dependiam de `vl_conta`/`vl_honorario`. Estudo 3 (dias médio) usa `nr_dias` já presente na Bronze. Estudo 4 resolvido via `mart_uti`. Estudo 5 (sazonalidade) é de volume, coberto por `mart_volume_assistencial`. Nova fonte candidata para os 2 estudos restantes: relatório "HSR - Análise de Contas" (Qlik), filtrado por conta com processamento encerrado — pendente validação contra nota fiscal real.
+    14. **Correção de bug em `colunas_drop`:** entrada `"hora"` (resíduo morto, nunca correspondeu a coluna real da Bronze principal) estava descartando silenciosamente a coluna `hora` real do relatório de movimentações. Removida.
+    15. **Model Cards criadas** (`MC-grupo-sus-v6.0.0.md`, `MC-complexidade-sus-v6.0.0.md`) a partir do relatório de performance de março/2026 — métricas por classe documentadas, incluindo gap macro/weighted avg e classe fantasma `-` (4 registros não identificados).
+    16. **Runbooks escritos:** RB-001 (iniciar sistema), RB-002 (gerar previsões via GUI), RB-003 (upload de correções e movimentações mensais).
+* **Workaround de ambiente:** limite de path do Windows (MAX_PATH) recorrente ao instalar pacotes dbt ou remover diretórios profundos via caminho do OneDrive — contornado com `subst D:` apontando para a pasta do projeto. Não é persistente entre reinícios.
 * **Pendências:**
-    - [ ] Models de `intermediate/` e `marts/{assistencial,modelo}/`
-    - [ ] dbt tests e contracts
+    - [ ] dbt contracts
     - [ ] dbt docs gerado
+    - [ ] `mart_desempenho_modelo` (desbloqueado, não iniciado)
+    - [ ] "Top 5 transições de erro" em `mart_taxa_correcao` (desbloqueado, não implementado)
+    - [ ] `marts_financeiro` — validar VALOR contra nota fiscal real antes de implementar
+    - [ ] Reingestão histórica 2014-2019 (deliberadamente deprioritizado)
 
 ---
 

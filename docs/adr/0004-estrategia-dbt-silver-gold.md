@@ -235,3 +235,23 @@ Análise exploratória com `vl_conta`, `vl_honorario`, `nr_dias`. Sem estimativa
 - `marts_assistencial` e `marts_modelo` seguem o escopo original sem alteração
 
 **Novo item na lista de deferidos de fim de projeto:** validação de `vl_conta`/`vl_honorario` (ferramenta de validação a definir — possivelmente reconciliação cruzada com o sistema de faturamento/AIH).
+
+
+## Atualização — 2026-08-21
+
+**Status da seção "marts_financeiro":** Reabertura parcial — 4 de 5 estudos desbloqueados
+
+**Investigação:** Revisão dos 5 estudos originais contra a real dependência de
+`vl_conta`/`vl_honorario` revelou que só os Estudos 1 e 2 dependiam de valor
+financeiro sem alternativa. Estudo 3 (dias médio) usa `nr_dias`, já presente
+na Bronze principal. Estudo 4 (correlação UTI×complexidade) foi resolvido em
+2026-08-21 via fonte de dado independente (relatório de movimentações,
+ver amendment ADR-0003 e mart_uti). Estudo 5 (sazonalidade) é de volume,
+não de valor — coberto por mart_volume_assistencial.
+
+**Nova fonte para Estudos 1 e 2:** relatório "HSR - Análise de Contas"
+(Qlik), filtrado por data de "Final Conta" (garante `TEM_DT_FINAL = 'COM FINAL'`,
+só contas com processamento encerrado, endereçando a causa raiz da divergência
+original com o setor financeiro). Colunas relevantes:
+NR_ATENDIMENTO (chave), VALOR, VALOR RECEBIDO, VALOR GLOSA.
+vl_honorario permanece fora de escopo.

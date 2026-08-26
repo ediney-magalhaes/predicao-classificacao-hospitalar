@@ -22,14 +22,17 @@ sistema_classificacaoSUS_inteligente/
 │   │   └── predicao.py                # Carregamento de modelos, predição, confiança, override
 │   ├── validacao/
 │   │   ├── validacao.py               # Schemas Pandera para validação das 3 planilhas de entrada
-│   │   └── schemas_pos_revisao.py     # Schemas Pandera pós-revisão + normalização case-insensitive
+│   │   ├── schemas_pos_revisao.py     # Schemas Pandera pós-revisão + normalização case-insensitive
+│   │   └── schemas_movimentacoes.py   # Schema Pandera do relatório de movimentações (4ª fonte)
 │   ├── hitl/
 │   │   ├── pipeline_correcao.py       # Orquestrador do ciclo HITL (validação -> comparação -> ingestão)
 │   │   ├── comparador.py             # Cálculo pareado de diferenças original vs revisão
 │   │   └── auditoria.py              # Registro de eventos HITL no BigQuery
 │   └── ingestion/
 │       ├── anonimizacao.py            # SHA-256 + salt para dados sensíveis
-│       └── carga_bq.py               # Ingestão na Bronze do BigQuery (idempotente por safra)
+│       ├── carga_bq.py               # Ingestão na Bronze do BigQuery (idempotente por safra)
+│       ├── preprocessamento_movimentacoes.py  # Reconstrução de layout bruto (colunas desconfiguradas)
+│       └── ingestao_movimentacoes.py  # Orquestrador da 4ª fonte (validação -> anonimização -> ingestão)
 ├── scripts/
 │   └── ingestao_historica.py          # Ingestão única do CSV consolidado 2012-2024
 ├── data/
@@ -37,13 +40,19 @@ sistema_classificacaoSUS_inteligente/
 ├── dbt_classificacao_analytics/       # Camada analítica dbt (Fase 3 — em construção)
 │   └── models/
 │       ├── staging/
-│       │   ├── sources.yml            # Declaração da fonte Bronze
-│       │   └── stg_bronze__saidas.sql # Tipagem de datas (3 formatos coexistentes)
-│       ├── intermediate/              # Sem models ainda
+│       │   ├── sources.yml            # Declaração das fontes Bronze (saídas + movimentações) e audit
+│       │   ├── stg_bronze__saidas.sql # Tipagem de datas (3 formatos coexistentes)
+│       │   └── stg_bronze__movimentacoes.sql  # Tipagem, combinação DATA+HORA
+│       ├── intermediate/
+│       │   ├── int_correcoes_hitl.sql          # Deduplicação de auditoria HITL por safra
+│       │   └── int_movimentacoes_uti.sql       # Pareamento cronológico entrada/saída por unidade
 │       └── marts/
-│           ├── assistencial/          # Sem models ainda
-│           ├── modelo/                # Sem models ainda
-│           └── financeiro/            # Suspenso (ver amendment ADR-0004)
+│           ├── assistencial/
+│           │   ├── mart_volume_assistencial.sql
+│           │   └── mart_taxa_correcao.sql
+│           ├── modelo/
+│           │   └── mart_uti.sql       # teve_uti + dias_totais_uti por atendimento
+│           └── financeiro/            # Parcialmente desbloqueado (ver amendment ADR-0004)
 ├── docs/
 │   ├── adr/                           # Architecture Decision Records
 │   ├── runbooks/                      # Procedimentos operacionais
@@ -109,6 +118,8 @@ Correção no Excel (~2h)
 │
 ▼
 Upload na GUI (aba "Enviar Correções")
+├── Planilha revisada (correções HITL) — obrigatória
+└── Relatório de movimentações (4ª fonte, UTI) — obrigatório, mesmo momento
 │
 ▼
 Validação pós-revisão (Pandera)
@@ -147,7 +158,7 @@ Resultado na GUI
 ├── Detalhamento das transições
 
 ```
-**Princípio de design:** o orquestrador (`pipeline_correcao.py`) segue o mesmo padrão do `gerar_previsoes.py` — recebe DataFrames, devolve dicionário de resultado. O `app.py` é apenas adapter visual. Pipeline testável sem GUI.
+**Princípio de design:** o orquestrador (`pipeline_correcao.py`) segue o mesmo padrão do `gerar_previsoes.py`, recebe DataFrames, devolve dicionário de resultado. O `app.py` é apenas adapter visual. Pipeline testável sem GUI.
 
 ### 2.3. Fluxo de Treinamento
 
@@ -210,11 +221,12 @@ O sistema utiliza o Free Tier do Google Cloud (1 TB/mês de query, 10 GB storage
 
 ### Estado atual:
 
-- **🥉 Camada Bronze (Raw / Histórico Validado):** Tabela física. Única fonte de verdade. 110.136 registros (2012-2026). Recebe dados via append mensal com deduplicação por safra (idempotente). Enriquecida com `capitulo_breve` e `grupo_cid` via dicionário CID. Auditoria em tabela separada (`audit.hitl_events`). **Implementada e em uso.**
+- **🥉 Camada Bronze (Raw / Histórico Validado):** Duas tabelas físicas, únicas fontes de verdade cada uma no seu domínio. `bronze_saidas_anonimizado` (internações, 2012-2026, volume crescente com ~900 registros/mês via
+append idempotente por safra). `bronze_movimentacoes_anonimizado` (relatório de movimentações internas, nova desde 2026-08-21, ~3.600 registros/mês). Ambas enriquecidas/anonimizadas antes da ingestão. Auditoria em tabela separada (`audit.hitl_events`). **Implementadas e em uso.**
 
-- **🥈 Camada Silver (Standardized / Enriched):** View SQL lógica. Limpeza padronizada (tipagem, nulls, nomenclatura). **Em construção (Fase 3) — primeiro model (`stg_bronze__saidas`) implementado, tipagem de data completa; demais colunas pendentes.**
+- **🥈 Camada Silver (Standardized / Enriched):** View SQL lógica. Dois staging models: `stg_bronze__saidas` (tipagem completa de data/hora, 3 formatos coexistentes) e `stg_bronze__movimentacoes` (tipagem, combinação DATA+HORA). Duas intermediate: `int_correcoes_hitl` (deduplicação de auditoria) e `int_movimentacoes_uti` (pareamento cronológico de entrada/saída por unidade, cálculo de permanência).
 
-- **🥇 Camada Gold (Aggregated / Business-Ready):** View SQL lógica. Agregações para consumo do BI (volumetria, performance, taxa de correção). **Planejada para Fase 3.**
+- **🥇 Camada Gold (Aggregated / Business-Ready):** View SQL lógica. `marts_assistencial`: `mart_volume_assistencial` (grão=atendimento, enriquecido com faixa etária/convênio/unidade via seeds), `mart_taxa_correcao` (taxas por safra e versão do modelo). `marts_modelo`: `mart_uti` (teve_uti + dias_totais_uti por atendimento, consumido pelo Estudo 4 do ADR-0005). `marts_financeiro`: parcialmente desbloqueado (ver amendment ADR-0004), ainda não implementado.
 
 ### Princípio FinOps:
 - Views em vez de tabelas materializadas em Silver/Gold (custo de storage zero)

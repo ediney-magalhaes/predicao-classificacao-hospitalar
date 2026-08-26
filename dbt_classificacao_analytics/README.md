@@ -19,27 +19,53 @@ Todas as camadas materializadas como **Views** (custo zero, volume atual de ~900
 | `intermediate` | Lógica compartilhada entre marts |
 | `marts_assistencial` | Perfil de pacientes, volumetria |
 | `marts_modelo` | Desempenho do modelo, taxa de correção |
-| `marts_financeiro` | Suspenso — ver amendment ADR-0004 |
+| `marts_financeiro` | Parcialmente desbloqueado — ver amendment ADR-0004 |
 
 ## Fonte de dados
 
-Declarada em [`models/staging/sources.yml`](models/staging/sources.yml): tabela `bronze_saidas_anonimizado`, dataset `dados_saidas_hospitalares`, 54 colunas, ~110k registros históricos (2012–2026).
+Declaradas em [`models/staging/sources.yml`](models/staging/sources.yml):
+
+- `bronze_saidas_anonimizado` internações, dataset `dados_saidas_hospitalares`,
+  54 colunas, histórico 2012–2026
+- `bronze_movimentacoes_anonimizado`, relatório de movimentações internas
+  (nova, 2026-08-21), mesmo dataset, usada para reconstruir passagem por UTI
+- `audit.hitl_events` — auditoria do ciclo HITL
 
 ## Models existentes
 
-### `staging/stg_bronze__saidas.sql`
+### `staging/`
 
-Tipagem das colunas de data/hora da Bronze. Status: **parcial** — trata apenas as 6 colunas de data; as demais 48 colunas da Bronze ainda não estão incluídas (pendência registrada).
+- **`stg_bronze__saidas.sql`** tipagem de data/hora (3 formatos
+  coexistentes: brasileiro, ISO, serial Excel) + demais 46 colunas
+  geradas via `dbt-codegen`. Completo.
+- **`stg_bronze__movimentacoes.sql`** — tipagem, combina `DATA`+`HORA` em
+  timestamp único via `SAFE.PARSE_DATETIME` (formato único confirmado,
+  `YYYY-MM-DD`)
 
-**Por que essa lógica é mais complexa que um cast simples:** a Bronze acumula 5 anos de exportações de fontes diferentes, e os campos de data coexistem em **3 formatos distintos** na mesma coluna:
+### `intermediate/`
 
-1. Brasileiro — `DD/MM/YYYY` (ou com hora, `DD/MM/YYYY HH:MM[:SS]`)
-2. ISO — `YYYY-MM-DD` (ou com hora, `YYYY-MM-DD HH:MM:SS`)
-3. Número serial do Excel — ex. `"45173,40162"` (dias desde `1899-12-30`, parte fracionária = hora do dia), presente em registros históricos de 2023 na coluna `dtsumario`
+- **`int_correcoes_hitl.sql`** deduplicação de eventos de auditoria por
+  `safra_mes` (residem duplicatas de teste; `MAX(data_revisao)` resolve)
+- **`int_movimentacoes_uti.sql`** pareamento cronológico de entrada/saída
+  por unidade a partir do relatório de movimentações. Classifica cada
+  evento como `entrada` (INTERNACAO, TRANSFER. DE) ou `saida` (TRANSFER.
+  PARA, ALTA), usa `LEAD()` para calcular a duração em cada unidade, com
+  critério de desempate para eventos no mesmo timestamp (a mesma
+  transferência vista dos dois lados). Grão: 1 linha por estadia em unidade.
 
-A estratégia usa `COALESCE` + `SAFE.PARSE_DATE`/`SAFE.PARSE_DATETIME` para tentar cada formato em sequência sem quebrar a query (`SAFE.` retorna `NULL` em vez de erro fatal quando o formato não bate). O terceiro formato (Excel) usa `DATETIME_ADD` encadeado, somando dias e depois segundos a partir da data-base `1899-12-30`.
+### `marts/assistencial/`
 
-Colunas com hora e data separadas na origem (`dt_alta` + `hr_alta`) são combinadas via `CONCAT` + `LPAD` (padroniza hora pra sempre 2 dígitos) antes do parsing.
+- **`mart_volume_assistencial.sql`** grão=atendimento, enriquecido com
+  faixa etária, convênio agrupado e unidade agrupada via seeds
+- **`mart_taxa_correcao.sql`** taxas de correção por safra e versão do
+  modelo
+
+### `marts/modelo/`
+
+- **`mart_uti.sql`** grão=atendimento, agrega `int_movimentacoes_uti`
+  em `teve_uti` + `dias_totais_uti` + `qtd_passagens_uti`. Vive aqui (não
+  em `assistencial`) porque seu consumo real é o Estudo 4 do ADR-0005
+  (correlação UTI×complexidade), não uma métrica assistencial de rotina
 
 ## Convenções de nomenclatura
 
@@ -64,6 +90,15 @@ dbt show --select stg_bronze__saidas --limit 50   # preview de resultado sem abr
 
 ## Pendências conhecidas
 
-- [ ] `stg_bronze__saidas.sql` incompleto — faltam 48 colunas não-data
-- [ ] `marts_financeiro/` é placeholder — suspenso por falta de validação de `vl_conta`/`vl_honorario` (ADR-0004, amendment)
-- [ ] Warning de `dbt parse`/`dbt run` sobre `intermediate`/`marts` sem resources é esperado até que existam models nessas pastas
+- [ ] dbt contracts ativos nos modelos críticos
+- [ ] `marts_financeiro/` parcialmente desbloqueado (2026-08-21, amendment
+      ADR-0004). Estudos 1 e 2 (dependentes de valor) têm nova fonte
+      candidata (relatório "HSR - Análise de Contas"), pendente validação
+      contra nota fiscal real antes de implementar
+- [ ] `mart_desempenho_modelo` desbloqueado (2026-08-21, previsao_grupo/
+      previsao_complexidade disponíveis na Bronze), ainda não iniciado
+- [ ] "Top 5 transições de erro" em `mart_taxa_correcao` — desbloqueado,
+      ainda não implementado
+- [ ] Reingestão histórica 2014-2019
+- [ ] Deprecation warning em testes `accepted_values` (top-level arguments
+      deprecados, precisam migrar para `arguments:` em versão futura do dbt)

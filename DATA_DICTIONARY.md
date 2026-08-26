@@ -76,6 +76,12 @@ Valores abaixo de 0.7 são sinalizados como "baixa confiança" na GUI, indicando
 
 **Nota sobre calibração:** os scores de confiança atuais indicam confiança relativa, não probabilidade calibrada. Na Fase 6 (ADR-0009), calibração por isotonic regression fará com que um score de 0.8 signifique efetivamente 80% de chance de acerto.
 
+### 4.4. Persistência na Bronze (pós-HITL)
+
+Após a revisão humana, `PREVISAO_GRUPO` e `PREVISAO_COMPLEXIDADE` (a predição bruta do modelo) são preservadas na Bronze como `previsao_grupo` e `previsao_complexidade`, colunas distintas de `grupo_sus`/`complexidade_sus`
+(o valor final, já corrigido pela assistente). Essa distinção existe para permitir cálculo de Precision/Recall pós-revisão e análise de transições de erro (o que o modelo previu vs. o que foi corrigido), sem confundir
+predição com gabarito. Implementado em `src/hitl/pipeline_correcao.py` via merge com a predição original salva na W: antes do rename para os nomes finais da Bronze.
+
 ---
 
 ## 5. Regras de Tratamento e Limpeza
@@ -113,3 +119,6 @@ As 3 planilhas de entrada são validadas com Pandera antes de entrar no pipeline
 | Cirurgias | `schema_cirurgias` | 3 colunas obrigatórias: ATENDIMENTO, SN_PRINCIPAL, DESCRICAO_CIRURGIA |
 
 As listas de colunas obrigatórias são mantidas em `config/settings.py`, evitando duplicação entre código e documentação.
+
+**Nota:** Existe uma 4ª fonte de dados, o relatório de movimentações internas (usado para reconstruir passagem por UTI, ver `mart_uti`), validado por `schema_movimentacoes` em `src/validacao/schemas_movimentacoes.py`.
+Diferente das 3 planilhas acima, não alimenta o modelo, é ingestão direta para a Bronze(`bronze_movimentacoes_anonimizado`), sem passar pelo pipeline de predição.
