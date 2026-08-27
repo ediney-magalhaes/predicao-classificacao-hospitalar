@@ -25,6 +25,7 @@ from src.validacao.validacao import validar_saidas, validar_altas, validar_cirur
 from gerar_previsoes import processar_previsoes
 from src.hitl.pipeline_correcao import salvar_predicao_original, processar_correcao
 from src.ingestion.ingestao_movimentacoes import processar_movimentacoes
+from src.ingestion.ingestao_financeiro import processar_valor_conta
 
 # LOGGING
 logging.basicConfig(
@@ -455,6 +456,49 @@ def aba_enviar_correcoes():
     else:
         st.info("Faça upload da planilha revisada para continuar.")
 
+# ABA 3: FINANCEIRO
+def aba_enviar_financeiro():
+    """Fluxo de envio da base dos valores da conta."""
+
+    st.header("💰 Enviar Financeiro")
+    st.markdown(
+        "Faça upload da planilha baixada do Qlikview aqui."
+    )
+
+    arquivo_financeiro = st.file_uploader(
+        "📄 Relatório Análise de Contas",
+        type=["xlsx"],
+        key="upload_financeiro",
+        help="Relatório de análise das contas exportado do Qlikview, salvo em Excel (sem tratamento)",
+        )
+
+    if arquivo_financeiro:
+        try:
+            df_financeiro = pd.read_excel(arquivo_financeiro)
+        except Exception as e:
+            st.error(f"Erro ao ler o arquivo: {e}")
+            return
+
+        st.success(
+            f"Arquivo carregado: {len(df_financeiro)} registros das contas hospitalares "
+        )
+
+        # botão de processar
+        if st.button("🚀 Processar Financeiro", type="primary", use_container_width=True):
+            with st.spinner("Processando... Validando e enviando."):
+                resultado = processar_valor_conta(df_financeiro)
+
+            # exibir resultado
+            if resultado["sucesso"]:
+                st.success(f"✅ {resultado['mensagem']}")
+                st.info(f"📊 {resultado['registros_enviados']} registros anonimizados enviados")
+            else:
+                st.error(f"❌ Falha na etapa: **{resultado['etapa_falha']}**")
+                st.markdown(resultado["mensagem"])
+    else:
+        st.info("Faça upload da planilha para continuar.")
+        
+
 # MAIN
 def main():
     if not verificar_autenticacao():
@@ -480,13 +524,16 @@ def main():
             st.rerun()
 
     # Abas
-    tab1, tab2 = st.tabs(["📋 Gerar Predições", "📤 Enviar Correções"])
+    tab1, tab2, tab3 = st.tabs(["📋 Gerar Predições", "📤 Enviar Correções", "💰 Financeiro"])
 
     with tab1:
         aba_gerar_predicoes()
 
     with tab2:
         aba_enviar_correcoes()
+
+    with tab3:
+        aba_enviar_financeiro()
 
 
 if __name__ == "__main__":

@@ -7,6 +7,17 @@
 
 ---
 
+## Log de Atualizações
+
+| Data | Resumo |
+|---|---|
+| 2026-06-25 | `marts_financeiro` suspensa — `vl_conta`/`vl_honorario` não validados |
+| 2026-07-28 | Escopo de `marts_assistencial` unificado em 1 model (⚠️ aplicado inline na seção "Escopo dos Marts", exceção ao padrão de log anexado — mantido por respeito ao registro histórico já feito) |
+| 2026-08-21 | 4 de 5 estudos financeiros desbloqueados — nova fonte identificada (relatório Qlik "HSR - Análise de Contas") |
+| 2026-08-26 | Fonte financeira validada contra sistema MV — regra de agregação definida e testada, Estudos 1 e 2 destravados |
+
+---
+
 ## Y-Statement
 
 **Para** a equipe de gestão hospitalar e o engenheiro responsável pelo modelo,  
@@ -236,7 +247,6 @@ Análise exploratória com `vl_conta`, `vl_honorario`, `nr_dias`. Sem estimativa
 
 **Novo item na lista de deferidos de fim de projeto:** validação de `vl_conta`/`vl_honorario` (ferramenta de validação a definir — possivelmente reconciliação cruzada com o sistema de faturamento/AIH).
 
-
 ## Atualização — 2026-08-21
 
 **Status da seção "marts_financeiro":** Reabertura parcial — 4 de 5 estudos desbloqueados
@@ -255,3 +265,43 @@ só contas com processamento encerrado, endereçando a causa raiz da divergênci
 original com o setor financeiro). Colunas relevantes:
 NR_ATENDIMENTO (chave), VALOR, VALOR RECEBIDO, VALOR GLOSA.
 vl_honorario permanece fora de escopo.
+
+## Atualização — 2026-08-26
+
+**Status da seção "marts_financeiro":** ✅ Estudos 1 e 2 destravados — fonte validada
+
+**Fonte identificada:** Relatório Qlik "HSR - Análise de Contas", exportado com
+filtro "Final Conta" abrangendo todo o histórico de meses disponível (não fatia
+mensal única — ver nota de extração abaixo).
+
+**Grão real da fonte:** uma linha por combinação `NR_INTERNO_CONTA` +
+`MES_ANO_PRODUCAO`. Um `NR_ATENDIMENTO` pode ter múltiplas `NR_INTERNO_CONTA`
+— confirmado como comportamento normal do domínio: fechamento de convênio
+ocorre por ciclo de produção, não por atendimento inteiro.
+
+**Regra de agregação validada:** `SUM(VALOR)` agrupado por `NR_INTERNO_CONTA`
+(soma parcelas de produção da mesma conta), depois `SUM` novamente por
+`NR_ATENDIMENTO` (soma todas as contas do atendimento). Valor incluído
+independente de status (parcial ou fechada) — decisão consciente de escopo
+exploratório, não fechamento contábil.
+
+**Validação:** 2 atendimentos testados contra o sistema MV (fonte de verdade
+operacional). Caso simples (2 linhas/1 conta): match exato. Caso complexo
+(7 linhas/6 contas): 5 de 6 contas exatas, 1 conta com diferença de R$ 342,39
+(0,38% do total) — tolerância aceita e documentada, não investigada
+adicionalmente (dado de sistema legado, fora do escopo deste projeto auditar).
+
+**Nota de extração:** filtro "Final Conta" por mês único captura apenas contas
+cujo evento caiu naquele mês — testado e confirmado incompleto (atendimento
+1657204 mostrou 3 de 6 contas reais num export de julho isolado). Extração
+correta exige selecionar o intervalo de meses completo disponível no filtro,
+não uma safra mensal isolada. **Implicação de arquitetura (pendente de decisão):**
+o padrão de ingestão `DELETE por safra_mes + APPEND`, usado hoje na Bronze
+principal, não se aplica a esta fonte — histórico completo é reextraído a cada
+carga, não incremental por mês.
+
+**O que muda:** Estudos 1, 2, 3, 5 saem de suspenso — dado-fonte disponível e
+validado (Estudo 3 e 5 já não dependiam de vl_conta, ver amendment 2026-08-21).
+`vl_conta`/`vl_honorario` são substituídos por `VALOR` desta fonte, com
+granularidade e chave de junção próprias (`NR_ATENDIMENTO`/`NR_INTERNO_CONTA`),
+não vêm mais da Bronze de saídas.

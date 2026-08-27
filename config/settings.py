@@ -178,7 +178,7 @@ class Settings(BaseSettings):
     #   registros sem expor o dado real)
     # - drop: a coluna é removida completamente (dado sem valor analítico)
     colunas_hash: list[str] = Field(
-    default=["nome_paciente","nm_med_presc", "medico_sumario_alta", "medico_resp_atend", "nm_paciente"],
+    default=["nome_paciente","nm_med_presc", "medico_sumario_alta", "medico_resp_atend", "nm_paciente", "PACIENTE"],
     description="Colunas que serão substituídas por hash SHA-256 + salt"
     )
     colunas_drop: list[str] = Field(
