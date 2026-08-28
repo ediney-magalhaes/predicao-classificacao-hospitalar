@@ -66,12 +66,14 @@ graph TD
         D3 --> D4[Comparação pareada + taxa de correção]
     end
 
-    subgraph "5. Nuvem / Medallion (BigQuery - Custo Zero)"
-        D4 -- Enriquecimento CID + Anonimização SHA-256 --> E1[(Bronze: 110k registros)]
+        subgraph "5. Nuvem / Medallion (BigQuery - Custo Zero)"
+        D4 -- Enriquecimento CID + Anonimização SHA-256 --> E1[(Bronze: Saídas)]
         D4 --> E0[(Auditoria: audit.hitl_events)]
+        E2[Relatório de Movimentações] -- Reconstrução + Anonimização --> E1b[(Bronze: Movimentações)]
 
     subgraph "6. Consumo Final"
-        E3 -. Fase 3 .-> F1[Dashboard BI]
+        E1 -. Fase 3 .-> F1[Dashboard BI]
+        E1b -. Fase 3 .-> F1
     end
 ```
 
@@ -138,22 +140,38 @@ Pydantic BaseSettings centraliza caminhos de modelos, listas de features, thresh
 │   │   └── predicao.py             # Predição, confiança, override, cache
 │   ├── validacao/
 │   │   ├── validacao.py            # Schemas Pandera (3 planilhas de entrada)
-│   │   └── schemas_pos_revisao.py  # Schemas Pandera pós-revisão + normalização
+│   │   ├── schemas_pos_revisao.py  # Schemas Pandera pós-revisão + normalização
+│   │   └── schemas_movimentacoes.py  # Schema Pandera da 4ª fonte (UTI)
 │   ├── hitl/
 │   │   ├── pipeline_correcao.py    # Orquestrador do ciclo HITL
 │   │   ├── comparador.py           # Diferenças original vs revisão
 │   │   └── auditoria.py            # Eventos HITL no BigQuery
 │   └── ingestion/
 │       ├── anonimizacao.py         # SHA-256 + salt
-│       └── carga_bq.py            # Ingestão na Bronze (idempotente)
+│       ├── carga_bq.py            # Ingestão na Bronze (idempotente)
+│       ├── preprocessamento_movimentacoes.py  # Reconstrução de layout bruto
+│       └── ingestao_movimentacoes.py  # Orquestrador da 4ª fonte
 ├── scripts/
 │   └── ingestao_historica.py       # Ingestão única 2012-2024 (109k registros)
 ├── data/
 │   └── Categorias de CIDs.xlsx     # Dicionário oficial CID-10
+├── dbt_classificacao_analytics/    # Camada analítica (Fase 3 — em construção)
+│   └── models/
+│       ├── staging/
+│       │   ├── sources.yml         # Fontes: saídas, movimentações, audit
+│       │   ├── stg_bronze__saidas.sql
+│       │   └── stg_bronze__movimentacoes.sql
+│       ├── intermediate/
+│       │   ├── int_correcoes_hitl.sql
+│       │   └── int_movimentacoes_uti.sql
+│       └── marts/
+│           ├── assistencial/       # volume, taxa de correção
+│           ├── modelo/             # mart_uti (correlação UTI×complexidade)
+│           └── financeiro/         # Parcialmente desbloqueado
 ├── docs/
 │   ├── adr/                        # Architecture Decision Records
-│   ├── runbooks/                   # Procedimentos operacionais
-│   └── model_cards/                # Documentação por versão de modelo
+│   ├── runbooks/                   # RB-001, RB-002, RB-003
+│   └── model_cards/                # MC-grupo-sus-v6.0.0, MC-complexidade-sus-v6.0.0
 ├── modelo_grupo_sus.joblib         # Modelo LightGBM — Grupo SUS
 └── modelo_complexidade_sus.joblib  # Modelo LightGBM — Complexidade SUS
 ```
@@ -167,8 +185,15 @@ Pydantic BaseSettings centraliza caminhos de modelos, listas de features, thresh
 - [x] **Fase 1 — GUI Streamlit:** Interface completa com upload, validação Pandera, predição com confiança, download. Testada no PC do hospital.
 - [x] **Fase 2 — Ciclo HITL Automatizado:** Upload de correções pela assistente, comparação pareada com detalhamento de transições, enriquecimento CID, anonimização, ingestão idempotente na Bronze, auditoria. Ingestão histórica: 109k registros (2012-2024).
 
+### Em Andamento
+- [~] **Fase 3 — Camada Analítica:** Staging completo (2 fontes), 4 marts
+  em produção (`mart_volume_assistencial`, `mart_taxa_correcao`, `mart_uti`),
+  4ª fonte de dados construída do zero (relatório de movimentações →
+  reconstrução de layout → Bronze → mart, para rastrear passagem por UTI).
+  Faltam: dbt contracts, dbt docs, mart_desempenho_modelo, dashboard BI
+  final. Detalhes em [`dbt_classificacao_analytics/README.md`](dbt_classificacao_analytics/README.md).
+
 ### Próximas Fases
-- [ ] **Fase 3 — Camada Analítica:** Silver/Gold em dbt, dashboard BI com métricas executivas
 - [ ] **Fase 4 — Observabilidade:** Monitoramento de drift (PSI), performance ao longo do tempo, alertas
 - [ ] **Fase 5 — Continuous Training:** Champion vs challenger, Model Registry, gates de qualidade
 - [ ] **Fase 6 — Explicabilidade:** SHAP por predição, calibração de probabilidades
@@ -191,16 +216,17 @@ venv\Scripts\activate          # Windows
 pip install -r requirements.txt
 ```
 
-### Rodar a GUI
+### Uso real (produção)
+Duplo clique em `iniciar_app.bat` — abre a GUI Streamlit automaticamente
+no navegador. É assim que a assistente e o Ediney operam o sistema no
+dia a dia. Detalhes em [`docs/runbooks/RB-001`](docs/runbooks/RB-001-iniciar-sistema.md).
+
+### Uso em desenvolvimento
+Durante construção de features, `streamlit run app.py` roda a GUI
+diretamente sem passar pelo `.bat`. Não é o fluxo de produção — é
+atalho de desenvolvimento.
 ```bash
 streamlit run app.py
-```
-Acesse via navegador: `http://localhost:8501` (ou `http://<IP-DO-PC>:8501` na rede local)
-
-### Rodar via terminal (sem GUI)
-Edite os nomes dos arquivos no bloco `if __name__ == '__main__'` de `gerar_previsoes.py`:
-```bash
-python gerar_previsoes.py
 ```
 
 ---

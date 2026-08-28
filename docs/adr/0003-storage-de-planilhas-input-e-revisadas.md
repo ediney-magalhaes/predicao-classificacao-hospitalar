@@ -146,3 +146,67 @@ W: (planilha revisada, upload pela assistente na aba 2 da GUI)
 - ADR-0001: Validação de dados em camadas (Pandera valida na ingestão)
 - ADR-0002: Hosting da GUI Streamlit (local na rede do hospital)
 - Fase 2 do Roadmap: Ciclo HITL Automatizado
+
+---
+
+## Amendment — 21/08/2026: 4ª fonte de dados (Relatório de Movimentações)
+
+### Contexto do amendment
+
+A Fase 2 identificou, durante investigação da pendência de UTI (reaberta em
+27/07/2026), que as colunas de UTI existentes na Bronze principal
+(`entrada_uti`, `qtd_uti_geral`, etc.) têm inconsistência interna não
+confiável para uso analítico. A fonte de verdade identificada foi o
+relatório de movimentações internas do hospital — já usado por outro
+pipeline, exportado mensalmente do sistema em formato bruto/desconfigurado
+(sem cabeçalho reconhecível, colunas por posição, linhas de metadado
+intercaladas com linhas de dado).
+
+### Decisão do amendment
+
+O relatório de movimentações passa a ser a **4ª fonte de dados** do ciclo
+HITL, seguindo a mesma decisão de storage já registrada nesta ADR (drive
+W:), com subpasta própria:
+```
+W:\NOVA PASTA QUALIDADE\Qualidade\Banco de dados\Epidemio
+├── 2026
+│ ├── Movimentações
+│ │ ├── movimentacoes_03_2026.xlsx
+│ │ ├── movimentacoes_07_2026.xlsx
+│ │ └── ...
+│ ├── Banco Epidemio - Janeiro 2026.xlsx
+│ └── ...
+```
+
+### Pipeline de ingestão (amendment)
+
+Diferente do fluxo HITL (planilha revisada), esta fonte não passa por
+comparação com predição nem revisão humana — é ingestão direta:
+```
+W: (relatório bruto, upload pela assistente na aba "Enviar Correções",
+no mesmo momento em que sobe a planilha revisada)
+→ Reconstrução de layout (colunas por posição → nomes finais;
+trata deslocamento variável de coluna e propaga UNIDADE/DATA
+das linhas de metadado)
+→ Validação de schema (Pandera — schemas_movimentacoes.py)
+→ Anonimização (SHA-256 + salt em NM_PACIENTE)
+→ DELETE por safra_mes na Bronze de movimentações (idempotência)
+→ Append em bronze_movimentacoes_anonimizado (BigQuery)
+```
+
+### Consequências do amendment
+
+- Upload passa a ser **obrigatório em par** com a planilha revisada na
+  aba "Enviar Correções" — decisão de UX que reforça o hábito mensal
+  já existente, sem criar uma aba nova
+- Nova tabela Bronze (`bronze_movimentacoes_anonimizado`), grão de
+  1 linha por evento de movimentação — sem agregação na ingestão,
+  mantendo o padrão Medallion (pareamento de entrada/saída de UTI
+  fica na Silver via dbt)
+- Custo de storage adicional: ~1,1 MB/mês, ~65 MB em 5 anos —
+  irrelevante frente ao free tier de 10 GB do BigQuery
+- Risco já mitigado nesta sessão: arquivos exportados por caminhos
+  alternativos (ex: convertidos via CSV por outro pipeline) podem
+  introduzir corrupção de encoding antes de chegar à W: — validado
+  e corrigido com reingestão a partir do arquivo bruto original do
+  sistema (ver commit `c037e6f`)

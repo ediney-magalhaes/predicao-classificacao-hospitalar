@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_correcoes_hitl
+    description: "Deduplica eventos de auditoria HITL por safra, mantendo apenas o registro mais recente quando há múltiplos uploads para a mesma safra"
+    columns:
+      - name: safra_mes
+        description: "Safra no formato YYYY-MM, chave de agrupamento do ciclo HITL"
+        tests:
+          - unique
+      - name: taxa_correcao_grupo
+        description: "Percentual de registros com grupo_sus corrigido pela revisora em relação à predição do modelo, por safra"
+        tests:
+          - dbt_utils.accepted_range:
+              config:
+                severity: error
+              arguments:
+                min_value: 0
+                max_value: 100
+                inclusive: true
+      - name: taxa_correcao_complexidade
+        description: "Percentual de registros com complexidade_sus corrigido pela revisora em relação à predição do modelo, por safra"
+        tests:
+          - dbt_utils.accepted_range:
+              config:
+                severity: error
+              arguments:
+                min_value: 0
+                max_value: 100
+                inclusive: true

@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: mart_taxa_correcao
+    description: "Taxa de correção humana (HITL) por safra, incluindo versão do modelo, pronto para consumo do Power BI (audiência modelo/engenharia)"
+    columns:
+      - name: safra_mes
+        description: "Período no formato YYYY-MM, chave única deste mart"
+        tests:
+          - unique
+          - not_null
+      - name: taxa_correcao_grupo
+        description: "Percentual de registros com grupo_sus corrigido pela revisora, por safra"
+        tests:
+          - dbt_utils.accepted_range:
+              config:
+                severity: error
+              arguments:
+                min_value: 0
+                max_value: 100
+                inclusive: true
+      - name: taxa_correcao_complexidade
+        description: "Percentual de registros com complexidade_sus corrigido pela revisora, por safra"
+        tests:
+          - dbt_utils.accepted_range:
+              config:
+                severity: error
+              arguments:
+                min_value: 0
+                max_value: 100
+                inclusive: true

@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: mart_financeiro
+    description: "Camada gold para estudos financeiros sobre as saídas hospitalares"
+    columns:
+      - name: nr_atendimento
+        description: "Coluna com identificador único de atendimento do paciente"
+        tests:
+          - unique
+          - not_null

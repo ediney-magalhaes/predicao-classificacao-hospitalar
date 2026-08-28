@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: stg_bronze__saidas
+    description: "Camada de staging que padroniza tipos e trata múltiplos formatos de data/hora vindos da Bronze"
+    columns:
+      - name: previsao_alta
+        description: "Data e hora prevista para alta do paciente. Contém 5 registros com valor implausível, monitorados via teste accepted_range"
+        tests:
+          - dbt_utils.accepted_range:
+              config:
+                severity: warn
+              arguments:
+                min_value: "date '2019-01-01' "
+                inclusive: false
+                max_value: "current_datetime()"
+      - name: sexo
+        description: "Coluna que informa o sexo do paciente no momento do seu cadastro no sistema MV. Aceita 3 valores, siglas: F, M e I (Indeterminado)"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['F', 'M', 'I']
+      - name: grupo_sus
+        description: "Coluna com as categorias SUS classificadas para cada procedimento"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Ações de promoção e prevenção em saúde",
+                         "Procedimentos com finalidade diagnóstica",
+                         "Procedimentos clínicos",
+                         "Procedimentos cirúrgicos",
+                         "Transplantes de orgãos, tecidos e células",
+                         "Medicamentos",
+                         "Órteses, próteses e materiais especiais",
+                         "Ações complementares da atenção à saúde" ]
+      - name: complexidade_sus
+        description: "Coluna de classificação dos Procedimentos segundo padrão SUS"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Atenção Básica", "Não se Aplica", "Alta Complexidade", "Média Complexidade"]

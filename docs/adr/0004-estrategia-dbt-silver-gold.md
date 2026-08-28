@@ -7,6 +7,17 @@
 
 ---
 
+## Log de Atualizações
+
+| Data | Resumo |
+|---|---|
+| 2026-06-25 | `marts_financeiro` suspensa — `vl_conta`/`vl_honorario` não validados |
+| 2026-07-28 | Escopo de `marts_assistencial` unificado em 1 model (⚠️ aplicado inline na seção "Escopo dos Marts", exceção ao padrão de log anexado — mantido por respeito ao registro histórico já feito) |
+| 2026-08-21 | 4 de 5 estudos financeiros desbloqueados — nova fonte identificada (relatório Qlik "HSR - Análise de Contas") |
+| 2026-08-26 | Fonte financeira validada contra sistema MV — regra de agregação definida e testada, Estudos 1 e 2 destravados |
+
+---
+
 ## Y-Statement
 
 **Para** a equipe de gestão hospitalar e o engenheiro responsável pelo modelo,  
@@ -148,6 +159,17 @@ Revisitar para `table` se: Power BI reportar tempo de atualização > 30 segundo
 - Top 10 CIDs principais (`cid_1_principal`)
 - Sazonalidade mensal e anual
 
+## Atualização — 2026-07-28
+
+**Escopo de marts_assistencial revisado:** a seção original previa dois models 
+(mart_perfil_paciente e mart_volume_assistencial). Na implementação, optou-se por 
+um único model (mart_volume_assistencial), grão de 1 linha por atendimento, cobrindo 
+todas as dimensões de ambos os escopos originais (sexo, faixa etária, UTI quando 
+disponível, dias de internação, município, CID, volumetria). Motivo: grão de 
+atendimento já permite qualquer agregação que os dois marts separados ofereceriam, 
+sem duplicação de base. mart_perfil_paciente não será implementado como model 
+separado, salvo necessidade futura identificada pelos estudos estatísticos (ADR-0005).
+
 ### `marts_modelo`
 
 **mart_desempenho_modelo** — métricas de performance por safra:
@@ -207,3 +229,79 @@ Análise exploratória com `vl_conta`, `vl_honorario`, `nr_dias`. Sem estimativa
 - [BigQuery free tier](https://cloud.google.com/bigquery/pricing#free-tier)
 - ADR-0001 — Validação de dados em camadas (Pydantic + Pandera + dbt)
 - ADR-0003 — Storage de planilhas e pipeline de ingestão
+
+## Atualização — 2026-06-25
+
+**Status da seção "marts_financeiro":** ⚠️ Suspensa (não implementada na Fase 3)
+
+**Motivo:** As colunas `vl_conta` e `vl_honorario`, base de todos os 5 estudos financeiros descritos na seção "Escopo dos Marts", não passaram por validação de integridade até o momento desta atualização. Não há garantia de que os valores refletem corretamente o faturamento real — gerar análises (dispersão, viés de correção, sazonalidade) sobre dado não validado produziria conclusões com aparência de confiabilidade que não correspondem à realidade, risco maior do que simplesmente não ter o estudo.
+
+**O que muda:**
+- A pasta `models/marts/financeiro/` permanece na estrutura do projeto como placeholder, sem nenhum model `.sql` implementado
+- O dataset `marts_financeiro` no BigQuery não é criado nesta fase
+- Os 5 estudos financeiros ficam formalmente bloqueados até a validação de `vl_conta`/`vl_honorario` ser resolvida
+
+**O que permanece válido:**
+- Toda a decisão de arquitetura (dbt Core local, Views, datasets separados por camada, convenções de nomenclatura) continua de pé
+- `marts_assistencial` e `marts_modelo` seguem o escopo original sem alteração
+
+**Novo item na lista de deferidos de fim de projeto:** validação de `vl_conta`/`vl_honorario` (ferramenta de validação a definir — possivelmente reconciliação cruzada com o sistema de faturamento/AIH).
+
+## Atualização — 2026-08-21
+
+**Status da seção "marts_financeiro":** Reabertura parcial — 4 de 5 estudos desbloqueados
+
+**Investigação:** Revisão dos 5 estudos originais contra a real dependência de
+`vl_conta`/`vl_honorario` revelou que só os Estudos 1 e 2 dependiam de valor
+financeiro sem alternativa. Estudo 3 (dias médio) usa `nr_dias`, já presente
+na Bronze principal. Estudo 4 (correlação UTI×complexidade) foi resolvido em
+2026-08-21 via fonte de dado independente (relatório de movimentações,
+ver amendment ADR-0003 e mart_uti). Estudo 5 (sazonalidade) é de volume,
+não de valor — coberto por mart_volume_assistencial.
+
+**Nova fonte para Estudos 1 e 2:** relatório "HSR - Análise de Contas"
+(Qlik), filtrado por data de "Final Conta" (garante `TEM_DT_FINAL = 'COM FINAL'`,
+só contas com processamento encerrado, endereçando a causa raiz da divergência
+original com o setor financeiro). Colunas relevantes:
+NR_ATENDIMENTO (chave), VALOR, VALOR RECEBIDO, VALOR GLOSA.
+vl_honorario permanece fora de escopo.
+
+## Atualização — 2026-08-26
+
+**Status da seção "marts_financeiro":** ✅ Estudos 1 e 2 destravados — fonte validada
+
+**Fonte identificada:** Relatório Qlik "HSR - Análise de Contas", exportado com
+filtro "Final Conta" abrangendo todo o histórico de meses disponível (não fatia
+mensal única — ver nota de extração abaixo).
+
+**Grão real da fonte:** uma linha por combinação `NR_INTERNO_CONTA` +
+`MES_ANO_PRODUCAO`. Um `NR_ATENDIMENTO` pode ter múltiplas `NR_INTERNO_CONTA`
+— confirmado como comportamento normal do domínio: fechamento de convênio
+ocorre por ciclo de produção, não por atendimento inteiro.
+
+**Regra de agregação validada:** `SUM(VALOR)` agrupado por `NR_INTERNO_CONTA`
+(soma parcelas de produção da mesma conta), depois `SUM` novamente por
+`NR_ATENDIMENTO` (soma todas as contas do atendimento). Valor incluído
+independente de status (parcial ou fechada) — decisão consciente de escopo
+exploratório, não fechamento contábil.
+
+**Validação:** 2 atendimentos testados contra o sistema MV (fonte de verdade
+operacional). Caso simples (2 linhas/1 conta): match exato. Caso complexo
+(7 linhas/6 contas): 5 de 6 contas exatas, 1 conta com diferença de R$ 342,39
+(0,38% do total) — tolerância aceita e documentada, não investigada
+adicionalmente (dado de sistema legado, fora do escopo deste projeto auditar).
+
+**Nota de extração:** filtro "Final Conta" por mês único captura apenas contas
+cujo evento caiu naquele mês — testado e confirmado incompleto (atendimento
+1657204 mostrou 3 de 6 contas reais num export de julho isolado). Extração
+correta exige selecionar o intervalo de meses completo disponível no filtro,
+não uma safra mensal isolada. **Implicação de arquitetura (pendente de decisão):**
+o padrão de ingestão `DELETE por safra_mes + APPEND`, usado hoje na Bronze
+principal, não se aplica a esta fonte — histórico completo é reextraído a cada
+carga, não incremental por mês.
+
+**O que muda:** Estudos 1, 2, 3, 5 saem de suspenso — dado-fonte disponível e
+validado (Estudo 3 e 5 já não dependiam de vl_conta, ver amendment 2026-08-21).
+`vl_conta`/`vl_honorario` são substituídos por `VALOR` desta fonte, com
+granularidade e chave de junção próprias (`NR_ATENDIMENTO`/`NR_INTERNO_CONTA`),
+não vêm mais da Bronze de saídas.

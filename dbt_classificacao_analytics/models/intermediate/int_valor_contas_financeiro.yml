@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: int_valor_contas_financeiro
+    description: "Camada de agregação para os valores das contas de um atendimento"
+    columns:
+      - name: nr_interno_conta
+        description: "Coluna com identificador da conta do paciente"
+        tests:
+          - unique
+          - not_null

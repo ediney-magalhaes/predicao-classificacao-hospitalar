@@ -1,0 +1,38 @@
+# identificação (pasta no repositório) e versão do projeto
+name: 'dbt_classificacao_analytics'
+version: '1.0.0'
+
+# nome do projeto dentro do repositório e fora (pasta dbt dentro do usuário no PC, ex: ediney.junior\dbt)
+profile: 'dbt_classificacao_analytics'
+
+# local dos tipos de arquivos dentro do projeto (como dbt encontra cada tipo de arquivo)
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+# declara quais pastas são consideradas descartáveis (guarda logs de compilação SQL e pacotes externos)
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# formaliza a materialização das tabelas no formato "view" conforme descrito na ADR-0004
+models:
+  dbt_classificacao_analytics:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      assistencial:
+        +materialized: view
+        +schema: marts_assistencial
+      modelo:
+        +materialized: view
+        +schema: marts_modelo
+      financeiro:
+        +materialized: view
+        +schema: marts_financeiro

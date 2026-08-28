@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: mart_volume_assistencial
+    description: "Grão de 1 linha por atendimento, enriquecido com faixa etária, categoria de convênio e unidade agrupada, pronto para consumo do Power BI (audiência assistencial)"
+    columns:
+      - name: atendimento
+        description: "Identificador único do atendimento - chave de linha do mart"
+        tests:
+          - unique
+          - not_null
+      - name: unidade_agrupada
+        description: "Unidade hospitalar agrupada a partir do leito de saída(unidade_saida), via seed mapa_leito_unidade. 'Não mapeado' indica leito ausente do seed (validar se novo ou desativado por reforma)."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [
+                        "PA", "Extra CC", "1º Andar 2", "UTI B", "UCO",
+                         "0º Andar SS", "UTI A2", "UTI Ped", "UTI A",
+                         "1º Andar 1", "Térreo", "Berçario", "UTI A1",
+                         "UTI Neo", "UTI C", "2º Andar 2", "UTI D",
+                         "Extra Hemod", "Não mapeado"
+                        ]
+      - name: fonte_convenio
+        description: "Categoria do convênio (agrupamento por tipo de operadora), via seed mapa_convenio_fonte, associada por registro_ans."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [
+                         "Medicina de Grupo", "Cooperativa Médica", "Autogestão",
+                         "Filantropia", "Administradora de Benefícios",
+                         "Outros", "Seguradora Especializada em Saúde"
+                        ]
+      - name: idade
+        description: "Idade do paciente em anos completos. Limite superior de 130 é plausibilidade, não regra rígida (valores acima merecem conferência de digitação)."
+        tests:
+          - dbt_utils.accepted_range:
+              config:
+                severity: warn
+              arguments:
+                min_value: 0
+                max_value: 130
+                inclusive: true

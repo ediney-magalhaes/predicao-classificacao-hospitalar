@@ -13,9 +13,10 @@ Quem chama este módulo (app.py, script, teste) não precisa conhecer
 os passos internos — só chama processar_correcao() e recebe o resultado.
 
 """
-
+import os
 import logging
 from pathlib import Path
+from datetime import datetime
 
 import pandas as pd
 
@@ -176,7 +177,31 @@ def processar_correcao(
             f"correções em Grupo, {metricas.get('correcoes_complexidade', 0)} "
             f"em Complexidade"
         )
+
+        # seleciona as colunas de atendimento e previsões de grupo e complexidade para criar novo dataframe com essas colunas e renomeia as colunas de previsão
+        df_original_bruto = df_original[['ATENDIMENTO', 'PREVISAO_GRUPO', 'PREVISAO_COMPLEXIDADE']].rename(
+            columns={
+                'PREVISAO_GRUPO': 'previsao_grupo',
+                'PREVISAO_COMPLEXIDADE': 'previsao_complexidade'
+            }
+        )
+
+        # junção do dataframe com as colunas "novas" ao dataframe revisado
+        df_revisado = df_revisado.merge(df_original_bruto, on='ATENDIMENTO', how='left')
+
+        # tempo de ciclo: da previsão até a correção
+        if tempo_revisao_min is None:
+            mtime_geracao = datetime.fromtimestamp(caminho_original.stat().st_mtime)
+            delta = datetime.now() - mtime_geracao
+            tempo_revisao_min = round(delta.total_seconds() / 60)
+            logger.info(
+                f"Tempo de ciclo calculado via mtime: {tempo_revisao_min} min"
+                f"gerado em {mtime_geracao}, corrigido em {datetime.now()}"
+            )
     else:
+        # cria as colunas preenchidas com "vazio" quando não encontra o arquivo original na pasta W:
+        df_revisado['previsao_grupo'] = pd.NA
+        df_revisado['previsao_complexidade'] = pd.NA
         logger.warning(
             f"Predição original não encontrada para {safra_mes}. "
             f"Comparação será ignorada — ingestão prossegue sem métricas."
