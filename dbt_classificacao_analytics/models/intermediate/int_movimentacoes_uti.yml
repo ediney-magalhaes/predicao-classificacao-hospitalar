@@ -29,13 +29,15 @@ models:
         description: Tipo de evento que originou a entrada nessa unidade.
         tests:
           - accepted_values:
-              values: ['INTERNACAO', 'TRANSFER. DE']
+              arguments:
+                values: ['INTERNACAO', 'TRANSFER. DE']
 
       - name: eh_uti
         description: True quando a unidade contém "UTI" no nome.
 
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - atendimento
-            - data_hora_entrada
+          arguments:
+            combination_of_columns:
+              - atendimento
+              - data_hora_entrada

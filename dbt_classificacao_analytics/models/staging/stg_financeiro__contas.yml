@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: stg_financeiro__contas
+    description: "Tabela de staging que recebe valores das contas hospitalares e padroniza tipos e trata conversão de ano e mes com mapeamento em seed"
+    columns:
+      - name: mes_ano_producao
+        description: "Período de produção das contas (valores)"
+        tests:
+          - not_null
+      - name: nr_atendimento
+        description: "Coluna com número único do atendimento"
+        tests:
+          - not_null
+      - name: nr_interno_conta
+        description: "Coluna com identificador da conta do paciente"
+        tests:
+          - not_null
