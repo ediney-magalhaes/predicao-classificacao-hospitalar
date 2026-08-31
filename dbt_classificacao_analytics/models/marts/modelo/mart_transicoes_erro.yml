@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: mart_transicoes_erro
+    description: "Correções ordenadas pelas cinco primeiras de maior volume em cada safra e variável"
+    columns:
+      - name: posicao
+        description: "Coluna de ordenação conforme total de correções em cada variável"
+        tests:
+          - dbt_utils.accepted_range:
+              config:
+                severity: error
+              arguments:
+                min_value: 1
+                max_value: 5
+                inclusive: true
