@@ -1,0 +1,10 @@
+version: 2
+
+models:
+  - name: stg_audit__hitl_events
+    description: "Camada com dados sobre as correções aplicadas no processo de revisão das previsões por safra"
+    columns:
+      - name: safra_mes
+        description: "Coluna com registro do período ingerido"
+        tests:
+          - not_null

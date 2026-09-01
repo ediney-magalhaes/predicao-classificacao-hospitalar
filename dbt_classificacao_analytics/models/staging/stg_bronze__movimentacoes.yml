@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: stg_bronze__movimentacoes
+    description: "Camada de movimentações de leitos do paciente, sendo uma linha por movimento"
+    columns:
+      - name: atendimento
+        description: "Coluna com número do atendimento, identificador do paciente"
+        tests:
+          - not_null
+      - name: data_hora_movimentacao
+        description: "Coluna com registro do momento da transição de leitos"
+        tests:
+          - not_null
