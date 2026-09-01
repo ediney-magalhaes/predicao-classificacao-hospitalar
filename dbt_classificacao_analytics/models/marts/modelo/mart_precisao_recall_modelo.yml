@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: mart_precisao_recall_modelo
+    description: "Cálculo das medidas de performance do modelo por safra, variável e classe"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - safra_mes
+              - variavel
+              - classe

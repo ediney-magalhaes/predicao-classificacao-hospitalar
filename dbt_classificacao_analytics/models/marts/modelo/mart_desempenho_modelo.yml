@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: mart_desempenho_modelo
+    description: "Camada de monitoramento das correções sobre as previsões por safra"
+    columns:
+      - name: safra_mes
+        description: "Coluna de identificação do mês (período)"
+        tests:
+          - unique
+          - not_null
