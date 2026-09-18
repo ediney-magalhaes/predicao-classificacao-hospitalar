@@ -1,3 +1,5 @@
+{{ config(contract={"enforced": true}) }}
+
 with transicoes_grupo as(
     select
         safra_mes,

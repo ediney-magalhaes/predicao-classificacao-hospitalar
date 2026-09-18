@@ -1,3 +1,5 @@
+{{ config(contract={"enforced": true}) }}
+
 with unificado as(
     select
         safra_mes,

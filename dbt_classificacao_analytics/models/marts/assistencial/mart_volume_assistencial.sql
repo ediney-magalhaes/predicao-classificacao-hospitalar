@@ -1,3 +1,5 @@
+{{ config(contract={"enforced": true}) }}
+
 select bronze.atendimento,
        bronze.safra_mes,
        bronze.grupo_sus,

@@ -10,3 +10,31 @@ models:
               - safra_mes
               - variavel
               - classe
+    columns:
+      - name: safra_mes
+        data_type: STRING
+        description: "Coluna com identificação do período de ingestão"
+      - name: variavel
+        data_type: STRING
+        description: "Coluna de identificação da variável prevista"
+      - name: classe
+        data_type: STRING
+        description: "Coluna com informação sobre previsão"
+      - name: tp
+        data_type: INT64
+        description: "Coluna com contagem de positivos na previsão"
+      - name: fp
+        data_type: INT64
+        description: "Coluna com contagem de falsos positivos das previsões"
+      - name: fn
+        data_type: INT64
+        description: "Coluna com a contagem de falsos negativos das previsões"
+      - name: precision
+        data_type: FLOAT64
+        description: "Coluna com a métrica de precisão calculada por classe"
+      - name: recall
+        data_type: FLOAT64
+        description: "Coluna com a métrica de sensibilidade calculada por classe"
+      - name: f1_score
+        data_type: FLOAT64
+        description: "Coluna com a média harmônica entre precisão e sensibilidade"

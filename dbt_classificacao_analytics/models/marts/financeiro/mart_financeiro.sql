@@ -1,3 +1,5 @@
+{{ config(contract={"enforced": true}) }}
+
 with valor_por_atendimento as(
     select
         nr_atendimento,

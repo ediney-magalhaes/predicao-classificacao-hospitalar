@@ -5,6 +5,7 @@ models:
     description: "Correções ordenadas pelas cinco primeiras de maior volume em cada safra e variável"
     columns:
       - name: posicao
+        data_type: INT64
         description: "Coluna de ordenação conforme total de correções em cada variável"
         tests:
           - dbt_utils.accepted_range:
@@ -14,3 +15,18 @@ models:
                 min_value: 1
                 max_value: 5
                 inclusive: true
+      - name: safra_mes
+        data_type: STRING
+        description: "Coluna que identifica o período de ingestão"
+      - name: previsto
+        data_type: STRING
+        description: "Coluna com classificação sobre a previsão do modelo"
+      - name: real
+        data_type: STRING
+        description: "Coluna com a classifcação de acerto da previsão"
+      - name: total
+        data_type: INT64
+        description: "Coluna com a contagem das transições"
+      - name: variavel
+        data_type: STRING
+        description: "Coluna com a declaração da variável e previsão"
