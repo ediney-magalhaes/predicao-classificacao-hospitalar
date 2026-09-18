@@ -1,3 +1,5 @@
+{{ config(contract={"enforced": true}) }}
+
 select
     safra_mes,
     total_registros,

@@ -5,11 +5,13 @@ models:
     description: "Grão de 1 linha por atendimento, enriquecido com faixa etária, categoria de convênio e unidade agrupada, pronto para consumo do Power BI (audiência assistencial)"
     columns:
       - name: atendimento
+        data_type: INT64
         description: "Identificador único do atendimento - chave de linha do mart"
         tests:
           - unique
           - not_null
       - name: unidade_agrupada
+        data_type: STRING
         description: "Unidade hospitalar agrupada a partir do leito de saída(unidade_saida), via seed mapa_leito_unidade. 'Não mapeado' indica leito ausente do seed (validar se novo ou desativado por reforma)."
         tests:
           - accepted_values:
@@ -22,6 +24,7 @@ models:
                          "Extra Hemod", "Não mapeado"
                         ]
       - name: fonte_convenio
+        data_type: STRING
         description: "Categoria do convênio (agrupamento por tipo de operadora), via seed mapa_convenio_fonte, associada por registro_ans."
         tests:
           - accepted_values:
@@ -32,6 +35,7 @@ models:
                          "Outros", "Seguradora Especializada em Saúde"
                         ]
       - name: idade
+        data_type: INT64
         description: "Idade do paciente em anos completos. Limite superior de 130 é plausibilidade, não regra rígida (valores acima merecem conferência de digitação)."
         tests:
           - dbt_utils.accepted_range:
@@ -41,3 +45,63 @@ models:
                 min_value: 0
                 max_value: 130
                 inclusive: true
+
+      - name: safra_mes
+        data_type: STRING
+        description: "Coluna com identificação do perído de ingestão/referência."
+
+      - name: grupo_sus
+        data_type: STRING
+        description: "Coluna com a classificação do grupo de procedimento segundo SUS."
+
+      - name: complexidade_sus
+        data_type: STRING
+        description: "Coluna com a classificação do atendimento quanto a sua complexidade."
+
+      - name: especialidade
+        data_type: STRING
+        description: "Coluna com a descrição das especialidades de atendimento."
+
+      - name: convenio
+        data_type: STRING
+        description: "Coluna com o nome do convênio do atendimento."
+
+      - name: uf
+        data_type: STRING
+        description: "Coluna com a identificação da UF que o paciente pertence."
+
+      - name: municipio
+        data_type: STRING
+        description: "Coluna com a identificação da cidade que o paciente pertence."
+      
+      - name: tipo_internacao
+        data_type: STRING
+        description: "Coluna com classificação do tipo de internação."
+      
+      - name: sexo
+        data_type: STRING
+        description: "Coluna com identificação do genero do paciente."
+
+      - name: nr_dias
+        data_type: INT64
+        description: "Coluna com o tempo médio de hospitalização do paciente."
+
+      - name: cid_1_principal
+        data_type: STRING
+        description: "Coluna com a classificação do diagnóstico por CID-10."
+
+      - name: capitulo_breve
+        data_type: STRING
+        description: "Coluna com a classificação do Cid por cápitulos."
+
+      - name: grupo_cid
+        data_type: STRING
+        description: "Coluna com a classificação do Cid por grupo."
+
+      - name: unidade_saida
+        data_type: STRING
+        description: "Coluna com a unidade onde o paciente teve alta."
+
+      - name: faixa_etaria
+        data_type: STRING
+        description: "Coluna com a classificação da faixa etária do paciente."

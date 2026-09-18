@@ -11,13 +11,28 @@ models:
       jornada iniciada antes disso podem subestimar o tempo real de UTI.
     columns:
       - name: atendimento
-        description: Chave do atendimento, mesma da Bronze principal.
+        data_type: INT64
+        description: "Chave do atendimento, mesma da Bronze principal."
         tests:
           - unique
           - not_null
 
       - name: teve_uti
-        description: True se o atendimento teve ao menos uma passagem por UTI.
+        data_type: BOOL
+        description: "True se o atendimento teve ao menos uma passagem por UTI."
 
       - name: dias_totais_uti
-        description: Soma de dias em unidades de UTI, somando todas as passagens.
+        data_type: FLOAT64
+        description: "Soma de dias em unidades de UTI, somando todas as passagens."
+
+      - name: minutos_totais_uti
+        data_type: INT64
+        description: "Coluna com tempo de permanência na UTI em minutos."
+
+      - name: horas_totais_uti
+        data_type: FLOAT64
+        description: "Coluna com tempo de permanência na UTI em horas."
+
+      - name: qtd_passagens_uti
+        data_type: INT64
+        description: "Coluna com a contagem de passagens pela UTI."

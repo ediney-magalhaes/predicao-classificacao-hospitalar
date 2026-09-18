@@ -1,3 +1,5 @@
+{{ config(contract={"enforced":true}) }}
+
 with movimentacoes_uti as (
     select *
     from {{ ref('int_movimentacoes_uti') }}

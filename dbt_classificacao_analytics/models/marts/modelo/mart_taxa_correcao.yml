@@ -5,11 +5,13 @@ models:
     description: "Taxa de correção humana (HITL) por safra, incluindo versão do modelo, pronto para consumo do Power BI (audiência modelo/engenharia)"
     columns:
       - name: safra_mes
+        data_type: STRING
         description: "Período no formato YYYY-MM, chave única deste mart"
         tests:
           - unique
           - not_null
       - name: taxa_correcao_grupo
+        data_type: FLOAT64
         description: "Percentual de registros com grupo_sus corrigido pela revisora, por safra"
         tests:
           - dbt_utils.accepted_range:
@@ -20,6 +22,7 @@ models:
                 max_value: 100
                 inclusive: true
       - name: taxa_correcao_complexidade
+        data_type: FLOAT64
         description: "Percentual de registros com complexidade_sus corrigido pela revisora, por safra"
         tests:
           - dbt_utils.accepted_range:
@@ -29,3 +32,27 @@ models:
                 min_value: 0
                 max_value: 100
                 inclusive: true
+
+      - name: total_registros
+        data_type: INT64
+        description: "Coluna com a quantidade de registros corrigidos."
+
+      - name: correcoes_grupo
+        data_type: INT64
+        description: "Coluna com a quantidade de correcoes realizadas por grupo SUS."
+
+      - name: correcoes_complexidade
+        data_type: INT64
+        description: "Coluna com a quantidade de correcoes realizadas por complexidade."
+
+      - name: correcoes_ambos
+        data_type: INT64
+        description: "Coluna com a quantidade de correcoes realizadas em ambos os modelos de classificação."
+
+      - name: tempo_revisao_min
+        data_type: INT64
+        description: "Coluna com o tempo, em minutos, gasto com correcoes."
+      
+      - name: versao_modelo
+        data_type: STRING
+        description: "Coluna com a identificação da versão do modelo."

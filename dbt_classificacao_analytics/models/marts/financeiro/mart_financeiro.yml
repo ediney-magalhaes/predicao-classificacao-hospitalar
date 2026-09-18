@@ -5,7 +5,36 @@ models:
     description: "Camada gold para estudos financeiros sobre as saídas hospitalares"
     columns:
       - name: nr_atendimento
+        data_type: INT64
         description: "Coluna com identificador único de atendimento do paciente"
         tests:
           - unique
           - not_null
+      
+      - name: valor_faturado
+        data_type: FLOAT64
+        description: "Coluna com o valor faturado nas contas de internação"
+
+      - name: valor_recebido
+        data_type: FLOAT64
+        description: "Coluna com o valor recebido após faturamento das contas de internação."
+
+      - name: valor_glosa
+        data_type: FLOAT64
+        description: "Coluna com o valor glosado após faturamento das contas de internação."
+      
+      - name: complexidade_sus
+        data_type: STRING
+        description: "Coluna com a classificação do atendimento quanto a sua complexidade."
+
+      - name: grupo_sus
+        data_type: STRING
+        description: "Coluna com a classificação do atendimento quanto ao grupo de procedimento SUS."
+      
+      - name: convenio
+        data_type: STRING
+        description: "Coluna com o nome do convênio do atendimento."
+
+      - name: fonte_convenio
+        data_type: STRING
+        description: "Coluna com a classificação do grupo ao qual pertence o convênio segundo ANS."

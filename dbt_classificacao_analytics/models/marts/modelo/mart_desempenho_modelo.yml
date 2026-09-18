@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: mart_desempenho_modelo
+    description: "Camada de monitoramento das correções sobre as previsões por safra"
+    columns:
+      - name: safra_mes
+        data_type: STRING
+        description: "Coluna de identificação do mês (período)"
+        tests:
+          - unique
+          - not_null
+      - name: total_predicoes
+        data_type: INT64
+        description: "Coluna com quantidade total das predições realizadas"
+      - name: acertos_grupo
+        data_type: INT64
+        description: "Coluna com quantidade de acertos nas previsões da variável grupo"
+      - name: acertos_complexidade
+        data_type: INT64
+        description: "Coluna com a quantidade de acertos nas previsões da variável complexidade"
+      - name: erros_grupo
+        data_type: INT64
+        description: "Coluna com a quantidade de erros nas predições da variável grupo"
+      - name: erros_complexidade
+        data_type: INT64
+        description: "Coluna com a quantidade de erros nas predições da variável complexidade"
+      - name: versao_modelo
+        data_type: STRING
+        description: "Coluna com a versão do modelo na safra"

@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: int_avaliacao_predicoes
+    description: "Camada de avaliação do modelo e suas previsões por atendimento"
+    columns:
+      - name: atendimento
+        description: "Coluna de identificador do paciente"
+        tests:
+          - unique
+          - not_null
