@@ -18,7 +18,8 @@ select bronze.atendimento,
        bronze.unidade_saida,
        faixa.faixa_etaria,
        convenio_fonte.fonte as fonte_convenio,
-       coalesce(leito_unidade.unidade, 'Não mapeado') as unidade_agrupada
+       coalesce(leito_unidade.unidade, 'Não mapeado') as unidade_agrupada,
+       parse_date('%Y-%m', bronze.safra_mes) as safra_data
 
 from {{ ref('stg_bronze__saidas') }} as bronze
 left join {{ ref('faixa_etaria') }} as faixa
