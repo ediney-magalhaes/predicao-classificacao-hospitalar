@@ -21,6 +21,7 @@ ORIGEM:
 
 import re
 import logging
+import datetime
 
 import pandas as pd
 
@@ -54,7 +55,7 @@ def _propagar_unidade_e_data(df: pd.DataFrame) -> pd.DataFrame:
         if str(linha[0]).startswith("Unidade de Internação"):
             unidade_atual = linha[6]
         elif str(linha[0]).strip() == "Data:":
-            data_atual = linha[2]
+            data_atual = next((v for v in linha if eh_data(v)), None)
 
         df.at[numero_linha, "UNIDADE"] = unidade_atual
         df.at[numero_linha, "DATA"] = data_atual
@@ -79,6 +80,13 @@ def _eh_horario(valor) -> bool:
         return False
     return bool(re.match(r"^\d{2}:\d{2}:\d{2}$", str(valor).strip()))
 
+def eh_data(valor) -> bool:
+    """Verifica se um valor esta no formato de data (DD/MM/AAAA)."""
+    if pd.isna(valor):
+        return False
+    if isinstance(valor, datetime.datetime):
+        return True
+    return bool(re.match(r"^\d{2}/\d{2}/\d{4}", str(valor).strip()))
 
 def _filtrar_linhas_de_dado(df: pd.DataFrame) -> pd.DataFrame:
     """
