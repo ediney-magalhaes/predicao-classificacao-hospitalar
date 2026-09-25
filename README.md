@@ -70,6 +70,7 @@ graph TD
         D4 -- Enriquecimento CID + Anonimização SHA-256 --> E1[(Bronze: Saídas)]
         D4 --> E0[(Auditoria: audit.hitl_events)]
         E2[Relatório de Movimentações] -- Reconstrução + Anonimização --> E1b[(Bronze: Movimentações)]
+    end
 
     subgraph "6. Consumo Final"
         E1 -. Fase 3 .-> F1[Dashboard BI]
