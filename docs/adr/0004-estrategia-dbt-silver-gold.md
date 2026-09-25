@@ -16,6 +16,7 @@
 | 2026-08-21 | 4 de 5 estudos financeiros desbloqueados — nova fonte identificada (relatório Qlik "HSR - Análise de Contas") |
 | 2026-08-26 | Fonte financeira validada contra sistema MV — regra de agregação definida e testada, Estudos 1 e 2 destravados |
 | 2026-08-28 | Ferramenta de BI revertida de Power BI para Looker Studio — restrição de conta corporativa |
+| 2026-09-25 | Extração financeira confirmada como mensal (não histórico completo) — ver amendment |
 
 ---
 
@@ -350,3 +351,36 @@ BigQuery, sem exigência de conta corporativa, qualquer conta Google
 local (não publicada) em Power BI Desktop, para fins de prática pessoal,
 não faz parte da entrega, não bloqueia nada, não requer conta corporativa
 por não ser publicada.
+
+
+## Atualização — 2026-09-25
+
+**Esclarecimento: extração do relatório financeiro é mensal, não histórico completo**
+
+**Contexto da confusão:** os amendments de 21/08 e 26/08 documentam um teste
+diagnóstico pontual (atendimento 1657204) que mostrou captura incompleta
+(3 de 6 contas) num export de **julho isolado**, e concluíram que "a extração
+correta exige o intervalo de meses completo disponível no filtro". Essa
+frase, lida fora do contexto do teste, foi interpretada como instrução de
+regime permanente, extrair o histórico inteiro a cada carga, o que não
+reflete a prática real nem é necessário.
+
+**Esclarecimento:** a extração é e continua sendo **mensal**, um arquivo por
+mês (confirmado: arquivos separados de março a agosto/2026 já extraídos e
+salvos na pasta `Banco de dados/Contas` do W:). Isso funciona porque a
+ingestão usa **MERGE**, não append (decisão já registrada nesta ADR): cada
+extração mensal captura as contas com produção fechada **naquele mês**
+(`MES_ANO_PRODUCAO`), e a Bronze acumula o quadro completo ao longo do
+tempo, mês a mês, sem precisar reexportar o passado a cada carga.
+
+**O que de fato importa, e o que o teste de julho realmente mostrou:** um
+único mês isolado não contém o histórico completo de um atendimento (uma
+conta pode fechar em produção meses depois da internação), isso é
+esperado e correto, não é falha de extração. O requisito real é **não pular
+nenhum mês** de extração; se um mês for pulado, as contas cujo fechamento
+caiu nele nunca entram na Bronze via nenhuma outra extração futura.
+
+**Ação preventiva:** se algum mês de extração for perdido ou pulado no
+futuro, esse mês precisa ser extraído retroativamente antes de prosseguir, 
+é o único cenário em que "extração de período amplo" (mais de um mês de
+uma vez) é de fato necessária.
