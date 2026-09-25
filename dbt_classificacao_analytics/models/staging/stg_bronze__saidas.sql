@@ -10,7 +10,7 @@ select
     idade,
     sexo,
     nr_dias,
-    municipio,
+    regexp_replace(normalize(municipio, NFD), r'\pM', '') as municipio,
     uf,
     registro_ans,
     convenio,
