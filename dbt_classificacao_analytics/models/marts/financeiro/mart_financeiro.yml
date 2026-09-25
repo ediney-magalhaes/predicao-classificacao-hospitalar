@@ -38,3 +38,11 @@ models:
       - name: fonte_convenio
         data_type: STRING
         description: "Coluna com a classificação do grupo ao qual pertence o convênio segundo ANS."
+      
+      - name: previsao_grupo
+        data_type: STRING
+        description: "Coluna com a predição original do modelo para o grupo SUS."
+
+      - name: previsao_complexidade
+        data_type: STRING
+        description: "Coluna com a predição original do modelo para a complexidade SUS."

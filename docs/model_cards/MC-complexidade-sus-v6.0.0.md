@@ -51,6 +51,19 @@ Atenção Básica, Média Complexidade, Alta Complexidade, Não se Aplica.
 - **Sem calibração de probabilidade:** mesmo ponto do modelo GRUPO_SUS
   (ver ADR-0009, Fase 6).
 - **Sem retreino desde março/2026.**
+- **`complexidade_sus` pode não ser rótulo independente do modelo:**
+  confirmado em 2026-09-25 que, na safra de agosto/2026 (841 registros),
+  a coluna teve taxa de correção de 0,0% — nenhuma linha divergiu de
+  `previsao_complexidade`. Não está confirmado se isso reflete (a) um
+  critério objetivo que dispensa revisão humana pra essa variável, (b)
+  uma lacuna real no processo de revisão da assistente, ou (c) um padrão
+  histórico que já afetava os dados de treino usados nesta versão do
+  modelo — incluindo o conjunto de avaliação de 12.829 registros citado
+  acima. Se for (b) ou (c), as métricas de Precision/Recall/F1 desta
+  tabela podem estar comparando o modelo contra si mesmo, não contra
+  verdade independente. Investigar a causa antes de reportar essas
+  métricas como validação externa em qualquer contexto (ex. Relatório 2
+  — Monitoramento Técnico, ainda não construído).
 
 ## Casos de Uso Pretendidos
 

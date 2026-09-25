@@ -15,6 +15,8 @@
 | 2026-07-28 | Escopo de `marts_assistencial` unificado em 1 model (⚠️ aplicado inline na seção "Escopo dos Marts", exceção ao padrão de log anexado — mantido por respeito ao registro histórico já feito) |
 | 2026-08-21 | 4 de 5 estudos financeiros desbloqueados — nova fonte identificada (relatório Qlik "HSR - Análise de Contas") |
 | 2026-08-26 | Fonte financeira validada contra sistema MV — regra de agregação definida e testada, Estudos 1 e 2 destravados |
+| 2026-08-28 | Ferramenta de BI revertida de Power BI para Looker Studio — restrição de conta corporativa |
+| 2026-09-25 | Extração financeira confirmada como mensal (não histórico completo) — ver amendment |
 
 ---
 
@@ -305,3 +307,80 @@ validado (Estudo 3 e 5 já não dependiam de vl_conta, ver amendment 2026-08-21)
 `vl_conta`/`vl_honorario` são substituídos por `VALOR` desta fonte, com
 granularidade e chave de junção próprias (`NR_ATENDIMENTO`/`NR_INTERNO_CONTA`),
 não vêm mais da Bronze de saídas.
+
+## Atualização — 2026-08-28
+
+**Decisão revertida: ferramenta de BI muda de Power BI para Looker Studio**
+
+**Motivo:** Power BI exige conta vinculada a um tenant corporativo (e-mail
+de trabalho/escola, Microsoft Entra ID) para cadastro e publicação de
+relatórios, restrição confirmada e ativa do produto, não contornável com
+conta pessoal (Gmail, Outlook pessoal, etc.). O projeto não tem garantia
+de acesso a uma conta corporativa própria para essa finalidade, já existe
+outro projeto ocupando a conta corporativa disponível. Essa restrição
+inviabilizaria a publicação dos relatórios mesmo depois de construídos.
+
+**Nova ferramenta:** Looker Studio (Google), com conector nativo para
+BigQuery, sem exigência de conta corporativa, qualquer conta Google
+(pessoal ou institucional) tem acesso de visualização. Mesmo projeto GCP
+(`ml-classificacao-sus`) consumido sem credencial nova.
+
+**O que muda:**
+- Estratégia de dois relatórios separados por audiência (decisão original
+  mantida: sem RLS, dois relatórios distintos apontando pro mesmo dataset)
+  migra diretamente para dois relatórios Looker Studio, compartilhados por
+  e-mail com permissões distintas
+- Modelo de consulta muda: Power BI (Import) faria cópia local com refresh
+  manual mensal; Looker Studio, por padrão, consulta o BigQuery a cada
+  carregamento/interação (mais próximo de DirectQuery), impacto de custo
+  permanece irrelevante dado o volume (5-10 consultas/mês), mas o
+  comportamento é diferente do que se discutiu originalmente para Power BI
+
+**O que permanece válido:**
+- Toda a decisão de camadas (staging → intermediate → marts, Views,
+  datasets separados por domínio), Looker Studio consome os mesmos marts
+  já construídos, sem mudança de schema
+- As três matrizes de indicadores (`docs/matriz_indicadores.md`,
+  `docs/matriz_indicadores_financeiro.md`, `docs/matriz_indicadores_modelo.md`)
+  — documentam indicador → fonte, independente da ferramenta de BI
+- Todos os visuais mapeados nas três matrizes (barra, linha, scorecard,
+  tabela, scatter/bubble para dispersão, pizza, mapa geográfico) são
+  suportados nativamente pelo conector do Looker Studio
+
+**Plano complementar:** após o Looker Studio estar em produção, réplica
+local (não publicada) em Power BI Desktop, para fins de prática pessoal,
+não faz parte da entrega, não bloqueia nada, não requer conta corporativa
+por não ser publicada.
+
+
+## Atualização — 2026-09-25
+
+**Esclarecimento: extração do relatório financeiro é mensal, não histórico completo**
+
+**Contexto da confusão:** os amendments de 21/08 e 26/08 documentam um teste
+diagnóstico pontual (atendimento 1657204) que mostrou captura incompleta
+(3 de 6 contas) num export de **julho isolado**, e concluíram que "a extração
+correta exige o intervalo de meses completo disponível no filtro". Essa
+frase, lida fora do contexto do teste, foi interpretada como instrução de
+regime permanente, extrair o histórico inteiro a cada carga, o que não
+reflete a prática real nem é necessário.
+
+**Esclarecimento:** a extração é e continua sendo **mensal**, um arquivo por
+mês (confirmado: arquivos separados de março a agosto/2026 já extraídos e
+salvos na pasta `Banco de dados/Contas` do W:). Isso funciona porque a
+ingestão usa **MERGE**, não append (decisão já registrada nesta ADR): cada
+extração mensal captura as contas com produção fechada **naquele mês**
+(`MES_ANO_PRODUCAO`), e a Bronze acumula o quadro completo ao longo do
+tempo, mês a mês, sem precisar reexportar o passado a cada carga.
+
+**O que de fato importa, e o que o teste de julho realmente mostrou:** um
+único mês isolado não contém o histórico completo de um atendimento (uma
+conta pode fechar em produção meses depois da internação), isso é
+esperado e correto, não é falha de extração. O requisito real é **não pular
+nenhum mês** de extração; se um mês for pulado, as contas cujo fechamento
+caiu nele nunca entram na Bronze via nenhuma outra extração futura.
+
+**Ação preventiva:** se algum mês de extração for perdido ou pulado no
+futuro, esse mês precisa ser extraído retroativamente antes de prosseguir, 
+é o único cenário em que "extração de período amplo" (mais de um mês de
+uma vez) é de fato necessária.

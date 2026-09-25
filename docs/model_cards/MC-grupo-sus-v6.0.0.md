@@ -58,6 +58,21 @@ finalidade diagnóstica, Órteses/próteses/materiais especiais (OPME).
 - **Sem retreino desde março/2026:** estas métricas refletem o snapshot
   de treino original; nenhum retreino formal ocorreu até a data deste
   documento (2026-08-21).
+- **Domínio de rótulo mais amplo que o domínio de predição:** confirmado
+  em 2026-09-25 que `grupo_sus` (rótulo de origem, na Bronze) carrega as
+  8 categorias oficiais do SIGTAP, não as 4 listadas na "Visão Geral"
+  deste documento. As 4 categorias fora do escopo do modelo (Ações de
+  promoção e prevenção, Transplantes de órgãos/tecidos/células,
+  Medicamentos, Ações complementares da atenção à saúde) representam
+  volume irrisório na base (12 de 51.959 registros históricos, 0,02%) mas
+  por definição nunca podem aparecer em `previsao_grupo`, o modelo não
+  foi treinado pra prever essas classes. Isso não é erro do modelo, é
+  escopo de treino, mas tem uma implicação direta na linha abaixo: **a
+  classe `-` (4 registros, F1 zero) pode não ser "erro de rótulo ou valor
+  ausente" como hipotetizado, pode ser um desses 4 rótulos raros do
+  SIGTAP aparecendo no conjunto de avaliação sem forma de ser predito
+  corretamente por desenho.** Vale reexaminar essas 4 linhas específicas
+  antes do próximo retreino, em vez de assumir falha de limpeza upstream.
 
 ## Mitigação em Produção
 

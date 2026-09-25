@@ -18,6 +18,8 @@ financeiro_enriquecido as(
         financeiro.valor_glosa,
         saidas.complexidade_sus,
         saidas.grupo_sus,
+        saidas.previsao_grupo,
+        saidas.previsao_complexidade,
         saidas.convenio,
         coalesce(convenio_fonte.fonte, 'Não Mapeado') as fonte_convenio
     from valor_por_atendimento as financeiro

@@ -105,3 +105,7 @@ models:
       - name: faixa_etaria
         data_type: STRING
         description: "Coluna com a classificação da faixa etária do paciente."
+
+      - name: safra_data
+        data_type: DATE
+        description: "Primeiro dia do mês de safra_mes, derivado via parse_date. Existe pra dar tipo Date nativo ao Looker Studio (safra_mes é STRING 'AAAA-MM', sem separador reconhecível automaticamente)."
