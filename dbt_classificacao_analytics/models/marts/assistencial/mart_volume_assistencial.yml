@@ -25,7 +25,7 @@ models:
                         ]
       - name: fonte_convenio
         data_type: STRING
-        description: "Categoria do convênio (agrupamento por tipo de operadora), via seed mapa_convenio_fonte, associada por registro_ans."
+        description: "Categoria do convênio (agrupamento por tipo de operadora), via seed mapa_convenio_fonte, associada por registro_ans. Quando o mapeamento não encontra correspondência os tipos 'PARTICULAR' e 'HSR - PARTICULAR' viram a categoria 'Particular'."
         tests:
           - accepted_values:
               arguments:
