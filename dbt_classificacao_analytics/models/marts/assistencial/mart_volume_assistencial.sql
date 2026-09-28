@@ -17,6 +17,7 @@ select bronze.atendimento,
        bronze.grupo_cid,
        bronze.unidade_saida,
        faixa.faixa_etaria,
+       cast(regexp_extract(faixa.faixa_etaria, r'^\d+') as int64) as ordem_faixa_etaria,
        convenio_fonte.fonte as fonte_convenio,
        coalesce(leito_unidade.unidade, 'Não mapeado') as unidade_agrupada,
        parse_date('%Y-%m', bronze.safra_mes) as safra_data
