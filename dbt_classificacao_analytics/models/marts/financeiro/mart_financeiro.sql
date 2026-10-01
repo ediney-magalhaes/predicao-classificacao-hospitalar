@@ -21,7 +21,7 @@ financeiro_enriquecido as(
         saidas.previsao_grupo,
         saidas.previsao_complexidade,
         saidas.convenio,
-        coalesce(convenio_fonte.fonte, 'Não Mapeado') as fonte_convenio
+        coalesce(convenio_fonte.fonte, case when saidas.convenio in ("PARTICULAR", "HSR - PARTICULAR") then "Particular" else "Outros" end) as fonte_convenio
     from valor_por_atendimento as financeiro
     inner join {{ ref('stg_bronze__saidas') }} as saidas
         on financeiro.nr_atendimento = saidas.atendimento
