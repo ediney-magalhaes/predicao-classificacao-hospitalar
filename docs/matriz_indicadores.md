@@ -19,12 +19,15 @@
 | Volume de saídas | safra_mes, grupo_sus, complexidade_sus, especialidade, convenio, uf, municipio, tipo_internacao, unidade_saida | qualquer coluna categórica + `safra_mes` | Disponível |
 | Distribuição por CID | safra_mes, capitulo_breve, grupo_cid | `cid_1_principal`, `capitulo_breve`, `grupo_cid` | Disponível |
 | Sazonalidade | safra_mes | `safra_mes` | Disponível |
-| Dias médios de internação | grupo_sus, complexidade_sus | `nr_dias` | Disponível |
-| Distribuição por sexo | safra_mes | `sexo` | Disponível |
+| Dias médios de internação | grupo_sus, complexidade_sus, capitulo_breve | `nr_dias` | Disponível |
+| Pirâmide etária (sexo x faixa etária) | safra_mes | `sexo`, `faixa_etaria` | Disponível |
 | Distribuição por faixa etária | safra_mes | `idade` (INT64), enriquecido via seed `faixa_etaria.csv` (LEFT JOIN em `mart_volume_assistencial`) | Disponível |
 | Top municípios de origem | safra_mes | `municipio` | Disponível |
-| Distribuição por convênio | safra_mes | `convenio` | Disponível (fora do escopo original da ADR-0004, dado existe) |
+| Distribuição por fonte pagadora | safra_mes | `fonte_convenio` (agrupado via seed `mapa_convenio_fonte`, por `registro_ans`; ver nota na Página 2 do `bi_layout.md` sobre a regra Particular/Outros) | Disponível |
 | Taxa de internação em UTI | atendimento (teve_uti, dias_totais_uti) | **Resolvido via fonte alternativa** (2026-08-21), não usa as 9 colunas originais da Bronze (permanecem com inconsistência não explicada, não confiáveis). Fonte real: relatório de movimentações internas, processado via `mart_uti`. **Não vive em `marts_assistencial`**, está em `marts_modelo`, pois seu consumo real é o Estudo 4 (correlação UTI×complexidade, ADR-0005), não uma métrica assistencial de rotina. Se este indicador for necessário aqui, requer JOIN cross-dataset com `marts_modelo.mart_uti` |
+| Convergência tipo de internação x classificação de saída | safra_mes | `tipo_internacao`, `grupo_sus` | Disponível |
+| Complexidade por capítulo CID | safra_mes | `complexidade_sus`, `capitulo_breve` | Disponível |
+| Distribuição por especialidade | safra_mes | `especialidade` | Disponível |
 
 ---
 
