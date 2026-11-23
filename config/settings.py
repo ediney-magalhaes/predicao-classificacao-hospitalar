@@ -210,6 +210,8 @@ class Settings(BaseSettings):
             "grupo_categoria", "subcategoria cid-10 (4 dígitos)",
             "nº_dias_uti_geral", "nº_dias_uco", "nº_dias_ped",
             "nº_dias_neo", "setor",
+            # Colunas sobre receita de medicamentos na alta
+            "receita_alta", "beta", "aas", "antico", "antibio", "receita alta"
         ],
         description="Colunas removidas antes da ingestão (sensíveis ou sem valor analítico)"
     )
