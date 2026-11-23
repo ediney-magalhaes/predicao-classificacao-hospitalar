@@ -17,6 +17,18 @@ Complexidade SUS para todos os atendimentos do mês.
   - Planilha de Altas (Sistema MV)
   - Planilha de Cirurgias Realizadas
 
+## Como obter as 3 planilhas
+
+| Planilha | Como obter |
+|---|---|
+| **Saídas (Epidemio)** | Solicitada à TI por chamado, que entrega o arquivo do mês. Não há filtros a escolher. |
+| **Altas (Sistema MV)** | No MV: Atendimento → Internação → Relatórios → Operacionais → Altas → Por Dia. Filtro: apenas o **período** (primeiro e último dia do mês de referência). Tipo de impressão: **CSV**. |
+| **Cirurgias Realizadas** | Arquivada na pasta **W\NOVA PASTA QUALIDADE\Qualidade\Banco de dados\CC**. |
+
+**Atenção ao formato:** a GUI só aceita arquivos `.xlsx`. O relatório de
+Altas sai do MV em CSV, então abra o CSV no Excel e use **Salvar como →
+Pasta de Trabalho do Excel (.xlsx)** antes de fazer o upload.
+
 ## Passo a Passo
 
 1. Acesse a GUI e faça login com a senha de acesso
