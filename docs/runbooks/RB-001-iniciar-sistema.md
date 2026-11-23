@@ -49,7 +49,7 @@ reinicialização do terminal.
 **O `.bat` fecha sozinho sem abrir nada**
 → Provável erro na ativação do `venv` ou dependência faltando. Abra
 um terminal manualmente, ative o `venv`
-(`.\venv\Scripts\Activate.ps1`) e rode `streamlit run app.py`
+(`C:\venvs\sistema_classificacao_sus\Scripts\Activate.ps1`) e rode `streamlit run app.py`
 diretamente para ver a mensagem de erro completa.
 
 **Tela de login não aceita a senha**
