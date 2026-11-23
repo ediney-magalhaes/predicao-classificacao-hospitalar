@@ -21,6 +21,24 @@ e atualize os dados de passagem por UTI.
   manual — o sistema já sabe lidar com o formato bruto)
 - Acesso à GUI (`http://<IP-do-PC-do-Ediney>:8501`)
 
+## Como gerar o Relatório de Movimentações
+
+Tela do sistema: **Movimentação por Unidade**. Parâmetros:
+
+| Campo | Valor |
+|---|---|
+| Unidade de Internação | TODOS |
+| Convênio | TODOS |
+| Tipo da Movimentação | Todas |
+| Período de / à | primeiro e último dia do mês de referência |
+
+**Não filtre por tipo, unidade ou convênio.** O sistema calcula a
+permanência em cada unidade (incluindo UTI) pareando entrada e saída de
+cada atendimento; qualquer filtro quebra esse pareamento.
+
+Salve em Excel (.xlsx), sem nenhum tratamento manual, como
+`movimentacoes_AAAA_MM`.
+
 ## Passo a Passo
 
 1. Acesse a GUI e faça login com a senha de acesso
