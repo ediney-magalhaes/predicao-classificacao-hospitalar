@@ -196,6 +196,10 @@ def validar_altas(df) -> tuple[bool, str]:
 
 def validar_cirurgias(df) -> tuple[bool, str]:
     """Valida a planilha de cirurgias."""
+
+    # remove as linhas se todas as colunas estiverem NaN ao mesmo tempo
+    df = df.dropna(how="all")
+
     try:
         schema_cirurgias.validate(df, lazy=True)
         logger.info(f"Planilha de cirurgias validada: {len(df)} linhas, {len(df.columns)} colunas")
